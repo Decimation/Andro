@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using JetBrains.Annotations;
 
-namespace Andro
+namespace Andro.Diagnostics
 {
 	internal static class GuardAdb
 	{

@@ -1,4 +1,5 @@
 ﻿using System;
+using Andro.Android;
 
 namespace Andro
 {
@@ -11,16 +12,21 @@ namespace Andro
 		{
 			Console.WriteLine("Hello World!");
 
-			var d = new Device("192.168.1.234:5555");
+			var n = "192.168.1.234:5555";
 
+			
 			foreach (string device in Device.AvailableDevices) {
 				Console.WriteLine(device);
 			}
+			var d = new Device();
+			Console.WriteLine(d);
 
-			Console.WriteLine(Device.AvailableDevices.Length);
+			var f  = @"C:\Users\Deci\Downloads\unnamed.jpg";
+			var f2 = "sdcard/unnamed.jpg";
 
-
-			d.Push(@"C:\Users\Deci\Downloads\unnamed.jpg", "sdcard/");
+			d.Remove(f2);
+			
+			
 		}
 	}
 }

@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using JetBrains.Annotations;
+
 // ReSharper disable UnusedMember.Global
 #nullable enable
-namespace Andro
+namespace Andro.Diagnostics
 {
 	public sealed class AdbException : Exception
 	{

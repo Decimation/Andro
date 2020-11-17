@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using JetBrains.Annotations;
 
-namespace Andro
+namespace Andro.Diagnostics
 {
 	internal static class Global
 	{
-		private const string STRING_FORMAT_ARG = "msg";
+		public const string STRING_FORMAT_ARG = "str";
 
-		private const string DEBUG_COND = "DEBUG";
+		public const string DEBUG_COND = "DEBUG";
 
 
 		[StringFormatMethod(STRING_FORMAT_ARG)]
@@ -23,26 +21,25 @@ namespace Andro
 
 		[StringFormatMethod(STRING_FORMAT_ARG)]
 		[Conditional(DEBUG_COND)]
-		internal static void WriteDebug(string msg, params object[] args)
+		internal static void WriteDebug(string str, params object[] args)
 		{
-			var str = string.Format(msg, args);
+			var str2 = string.Format(str, args);
 
-			Debug.WriteLine($">> {str}");
+			Debug.WriteLine($">> {str2}");
 		}
 
 
 		internal static void Write(object o)
 		{
-
 			Console.WriteLine($">> {o}");
 		}
 
 		[StringFormatMethod(STRING_FORMAT_ARG)]
-		internal static void Write(string msg, params object[] args)
+		internal static void Write(string str, params object[] args)
 		{
-			var str = string.Format(msg, args);
+			var str2 = string.Format(str, args);
 
-			Console.WriteLine($">> {str}");
+			Console.WriteLine($">> {str2}");
 		}
 	}
 }

@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Andro.Core;
+using Andro.Diagnostics;
+using JetBrains.Annotations;
 using Novus.Win32;
-
 
 #pragma warning disable HAA0601 // Value type to reference type conversion causing boxing allocation
 #pragma warning disable HAA0602 // Delegate on struct instance caused a boxing allocation
@@ -23,29 +24,27 @@ using Novus.Win32;
 
 #pragma warning disable HAA0101
 
-namespace Andro
+namespace Andro.Android.IO
 {
-	public class CommandOperation : IDisposable
+	public class CommandResult : IDisposable
 	{
 		public Process Process { get; }
-
-		public string OperationCommand { get; }
-
 
 		public string[] StandardOutput { get; private set; }
 
 		public string[] StandardError { get; private set; }
 
+		public CommandPacket CommandPacket { get; }
 
-		public CommandOperation(string cmd)
+		public CommandResult(CommandPacket cmd)
 		{
-			Process          = Operations.RunCommand(cmd);
-			OperationCommand = cmd;
+			Process     = Commands.RunShellCommand(cmd);
+			CommandPacket = cmd;
 		}
 
 		public void Start()
 		{
-			Global.WriteDebug("Start {0}", OperationCommand);
+			Global.WriteDebug("Start {0}", CommandPacket.FullCommand);
 			Process.Start();
 
 			StandardOutput = Command.ReadAllLines(Process.StandardOutput);
@@ -56,17 +55,8 @@ namespace Andro
 		public void Dispose()
 		{
 
-			Global.WriteDebug("Dispose {0}", OperationCommand);
+			Global.WriteDebug("Dispose {0}", CommandPacket.FullCommand);
 			Process.WaitForExit();
-		}
-
-		public static CommandOperation Run(string c)
-		{
-			var op = new CommandOperation(c);
-
-			op.Start();
-
-			return op;
 		}
 
 
@@ -74,12 +64,12 @@ namespace Andro
 		{
 			var sb = new StringBuilder();
 
-			
+			sb.AppendFormat($"{CommandPacket.FullCommand}");
 
-			sb.AppendCond(StandardOutput, "Stdout");
-			sb.AppendCond(StandardError, "Stderr");
-			
-			return base.ToString();
+			sb.AppendRangeSafe(StandardOutput, "Standard output:\n");
+			sb.AppendRangeSafe(StandardError, "Standard error:\n");
+
+			return sb.ToString();
 		}
 	}
 }
