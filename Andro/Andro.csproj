@@ -21,10 +21,10 @@
 
   <ItemGroup>
     <Reference Include="Novus">
-      <HintPath>..\..\Novus\Novus\bin\Release\netcoreapp3.1\Novus.dll</HintPath>
+      <HintPath>..\..\Novus\Novus\bin\Release\net5.0\Novus.dll</HintPath>
     </Reference>
     <Reference Include="SimpleCore">
-      <HintPath>..\..\..\RiderProjects\SimpleCore\SimpleCore\bin\Release\netcoreapp3.1\SimpleCore.dll</HintPath>
+      <HintPath>..\..\Novus\Novus\bin\Release\net5.0\SimpleCore.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -5,7 +5,7 @@ using Andro.Core;
 using Andro.Diagnostics;
 using JetBrains.Annotations;
 using Novus.Win32;
-
+#pragma warning disable IDE0079
 #pragma warning disable HAA0601 // Value type to reference type conversion causing boxing allocation
 #pragma warning disable HAA0602 // Delegate on struct instance caused a boxing allocation
 #pragma warning disable HAA0603 // Delegate allocation from a method group
@@ -44,7 +44,7 @@ namespace Andro.Android.IO
 
 		public void Start()
 		{
-			Global.WriteDebug("Start {0}", CommandPacket.FullCommand);
+			Global_Andro.WriteDebug("Start {0}", CommandPacket.FullCommand);
 			Process.Start();
 
 			StandardOutput = Command.ReadAllLines(Process.StandardOutput);
@@ -55,7 +55,7 @@ namespace Andro.Android.IO
 		public void Dispose()
 		{
 
-			Global.WriteDebug("Dispose {0}", CommandPacket.FullCommand);
+			Global_Andro.WriteDebug("Dispose {0}", CommandPacket.FullCommand);
 			Process.WaitForExit();
 		}
 

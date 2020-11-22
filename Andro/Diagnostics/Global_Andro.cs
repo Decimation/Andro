@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 
 namespace Andro.Diagnostics
 {
-	internal static class Global
+	internal static class Global_Andro
 	{
 		public const string STRING_FORMAT_ARG = "str";
 

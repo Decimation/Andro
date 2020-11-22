@@ -1,7 +1,23 @@
 ﻿using System;
 using System.Text;
 using JetBrains.Annotations;
-using static Andro.Diagnostics.Global;
+using static Andro.Diagnostics.Global_Andro;
+#pragma warning disable IDE0079
+#pragma warning disable HAA0601 // Value type to reference type conversion causing boxing allocation
+#pragma warning disable HAA0602 // Delegate on struct instance caused a boxing allocation
+#pragma warning disable HAA0603 // Delegate allocation from a method group
+#pragma warning disable HAA0604 // Delegate allocation from a method group
+
+#pragma warning disable HAA0501 // Explicit new array type allocation
+#pragma warning disable HAA0502 // Explicit new reference type allocation
+#pragma warning disable HAA0503 // Explicit new reference type allocation
+#pragma warning disable HAA0504 // Implicit new array creation allocation
+#pragma warning disable HAA0505 // Initializer reference type allocation
+#pragma warning disable HAA0506 // Let clause induced allocation
+
+#pragma warning disable HAA0301 // Closure Allocation Source
+#pragma warning disable HAA0302 // Display class allocation to capture closure
+#pragma warning disable HAA0303 // Lambda or anonymous method in a generic method allocates a delegate instance
 
 #nullable enable
 namespace Andro.Android.IO
@@ -21,11 +37,11 @@ namespace Andro.Android.IO
 
 	public readonly struct CommandPacket
 	{
-		public string Command { get; init; }
+		public string Command { get; }
 
-		public CommandScope Scope { get; init; }
+		public CommandScope Scope { get;  }
 
-		public string FullCommand { get; init; }
+		public string FullCommand { get;  }
 
 
 		public CommandPacket(string command) : this(CommandScope.Adb, command) { }
@@ -89,7 +105,7 @@ namespace Andro.Android.IO
 
 		public override string ToString()
 		{
-			var sb=  new StringBuilder();
+			var sb = new StringBuilder();
 
 			sb.AppendFormat("({0}): {1}", Scope, FullCommand);
 

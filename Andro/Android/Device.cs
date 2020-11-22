@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,6 +10,7 @@ using Andro.Android.IO;
 using Andro.Core;
 using Andro.Diagnostics;
 using JetBrains.Annotations;
+using Novus;
 using Novus.Win32;
 using static Andro.Android.IO.AllCommands;
 using static Andro.Android.IO.CommandResult;
@@ -16,7 +18,7 @@ using static Andro.Android.IO.CommandResult;
 // ReSharper disable InconsistentNaming
 
 // ReSharper disable UnusedMember.Global
-
+#pragma warning disable IDE0079
 
 #pragma warning disable HAA0601 // Value type to reference type conversion causing boxing allocation
 #pragma warning disable HAA0602 // Delegate on struct instance caused a boxing allocation
@@ -34,6 +36,7 @@ using static Andro.Android.IO.CommandResult;
 #pragma warning disable HAA0302 // Display class allocation to capture closure
 #pragma warning disable HAA0303 // Lambda or anonymous method in a generic method allocates a delegate instance
 
+#pragma warning disable HAA0101
 
 namespace Andro.Android
 {
@@ -50,7 +53,7 @@ namespace Andro.Android
 
 		public ConnectionMode Mode { get; }
 
-		public Device() : this(AvailableDevices.First()) { }
+		public Device() : this(FirstAvailableDevice) { }
 
 		public Device(string deviceName, ConnectionMode mode = ConnectionMode.UNKNOWN)
 		{
@@ -68,6 +71,19 @@ namespace Andro.Android
 			return isIPAddr ? ConnectionMode.TCPIP : ConnectionMode.USB;
 		}
 
+		public static string FirstAvailableDevice
+		{
+			get
+			{
+				var d = AvailableDevices.FirstOrDefault();
+
+				if (d == null) {
+					throw new AdbException();
+				}
+
+				return d;
+			}
+		}
 
 		public static string[] AvailableDevices
 		{
@@ -123,12 +139,14 @@ namespace Andro.Android
 
 		public int GetFileSize(string remoteFile)
 		{
+			EnsureDevice();
+
 			var packet = new CommandPacket(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
 
 			using var cmd = Commands.RunCommand(packet);
 
 			if (cmd.StandardError != null && cmd.StandardError.Any(s => s.Contains("No such file"))) {
-				return Native.INVALID;
+				return NativeInterop.INVALID;
 			}
 
 			if (cmd.StandardOutput.Any()) {
@@ -144,22 +162,26 @@ namespace Andro.Android
 				return bytes;
 			}
 
-			return Native.INVALID;
+			return NativeInterop.INVALID;
 		}
 
 		public bool FileExists(string remoteFile)
 		{
+			EnsureDevice();
+
 			var packet = new CommandPacket(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
 
 			using var cmd = Commands.RunCommand(packet);
 
 			var fs = GetFileSize(remoteFile);
 
-			return fs != Native.INVALID;
+			return fs != NativeInterop.INVALID;
 		}
 
 		public void Remove(string remoteFile)
 		{
+			EnsureDevice();
+
 			var packet = new CommandPacket(CommandScope.AdbShell, CMD_RM, $"-f \"{remoteFile}\"");
 
 			using var cmd = Commands.RunCommand(packet);
@@ -167,6 +189,8 @@ namespace Andro.Android
 
 		public string Pull(string remoteFile, string localDestFolder)
 		{
+			EnsureDevice();
+
 			var fileName = Path.GetFileName(remoteFile);
 
 			var destFileName = Path.Combine(localDestFolder, fileName);
@@ -180,6 +204,8 @@ namespace Andro.Android
 
 		public string[] GetFiles(string remoteFolder)
 		{
+			EnsureDevice();
+
 			var packet = new CommandPacket(CommandScope.AdbShell, CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
 
 			using var cmd = Commands.RunCommand(packet);
@@ -189,8 +215,38 @@ namespace Andro.Android
 			return output;
 		}
 
+		/// <summary>
+		/// Ensures only <see cref="DeviceName"/> is connected
+		/// </summary>
+		public void EnsureDevice() => EnsureDevice(DeviceName);
+
+		/// <summary>
+		/// Ensures only <paramref name="name"/> is connected
+		/// </summary>
+		public static void EnsureDevice(string name)
+		{
+			Debug.WriteLine($"Ensuring devices {name}");
+
+			var otherDevices = AvailableDevices.Where(n => n != name).ToArray();
+
+			foreach (string otherDevice in otherDevices) {
+				Debug.WriteLine($"Disconnecting {otherDevice}");
+
+				var       packet = new CommandPacket(CommandScope.Adb, $"-s {otherDevice} disconnect");
+				using var cmd    = Commands.RunCommand(packet);
+			}
+		}
+
+		// public static void RunWithDevice(string n, Action fn)
+		// {
+		// 	EnsureDevice(n);
+		// 	fn();
+		// }
+
 		public void Push(string localSrcFile, string remoteDestFolder)
 		{
+			EnsureDevice();
+
 			var packet = new CommandPacket(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
 
 			using var cmd = Commands.RunCommand(packet);
@@ -199,9 +255,15 @@ namespace Andro.Android
 
 		public void PushAll(string localSrcFolder, string remoteDestFolder)
 		{
+			EnsureDevice();
+
 			var files = Directory.GetFiles(localSrcFolder);
 
 			foreach (string file in files) {
+				var fi = new FileInfo(file);
+
+				Global_Andro.Write("Push {0} -> {1}", fi.Name, remoteDestFolder);
+
 				Push(file, remoteDestFolder);
 				//Console.ReadLine();
 			}
