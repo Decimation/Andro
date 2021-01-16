@@ -146,7 +146,7 @@ namespace Andro.Android
 			using var cmd = Commands.RunCommand(packet);
 
 			if (cmd.StandardError != null && cmd.StandardError.Any(s => s.Contains("No such file"))) {
-				return NativeInterop.INVALID;
+				return Native.INVALID;
 			}
 
 			if (cmd.StandardOutput.Any()) {
@@ -162,7 +162,7 @@ namespace Andro.Android
 				return bytes;
 			}
 
-			return NativeInterop.INVALID;
+			return Native.INVALID;
 		}
 
 		public bool FileExists(string remoteFile)
@@ -175,7 +175,7 @@ namespace Andro.Android
 
 			var fs = GetFileSize(remoteFile);
 
-			return fs != NativeInterop.INVALID;
+			return fs != Native.INVALID;
 		}
 
 		public void Remove(string remoteFile)
@@ -248,8 +248,10 @@ namespace Andro.Android
 			EnsureDevice();
 
 			var packet = new CommandPacket(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
-
+			
+			
 			using var cmd = Commands.RunCommand(packet);
+			
 		}
 
 

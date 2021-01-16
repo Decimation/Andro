@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Andro.Android;
+using Andro.Core;
 using Andro.Diagnostics;
 using JetBrains.Annotations;
 using Novus;
+using SimpleCore.Console.CommandLine;
 using SimpleCore.Utilities;
 
 #nullable enable
@@ -18,28 +20,23 @@ namespace Andro
 	{
 		public static void Main(string[] args)
 		{
+			/*
+			 * Setup
+			 */
+			
+			Console.Title = Info.NAME;
+			NConsole.Init();
+			NConsole.Write(Info.NAME);
 
-			//Global.DumpDependencies();
-			//Console.ReadLine();
-			Console.WriteLine("Hello World!");
-
-			/*var n = "192.168.1.234:5555";
-
-			foreach (string device in Device.AvailableDevices) {
-				Console.WriteLine(device);
-			}
-
-			var d = new Device();
-			Console.WriteLine(d);
-
-			var f  = @"C:\Users\Deci\Downloads\unnamed.jpg";
-			var f2 = "sdcard/unnamed.jpg";
-
-			d.Remove(f2);*/
-
+			/*
+			 *
+			 */
+			
 			var data = ReadFromArguments();
 
 			Console.WriteLine(">> {0}", data);
+
+			NConsole.WaitForInput();
 		}
 
 		private static object? ReadFromArguments()
@@ -48,11 +45,10 @@ namespace Andro
 				.Skip(1)
 				.ToArray();
 
-			Debug.WriteLine(args.QuickJoin(" "));
+			Debug.WriteLine(args.QuickJoin(Formatting.SPACE.ToString()));
+			
 
-			bool noArgs = args.Length == 0;
-
-			if (noArgs) {
+			if (!args.Any()) {
 
 				return null;
 			}
@@ -61,6 +57,7 @@ namespace Andro
 			using var argEnumerator = argQueue.GetEnumerator();
 
 			var d = new Device(Device.FirstAvailableDevice);
+			Console.WriteLine(d);
 
 			while (argEnumerator.MoveNext()) {
 				string argValue = argEnumerator.Current;
@@ -68,6 +65,18 @@ namespace Andro
 				// todo: structure
 
 				switch (argValue) {
+					case "push":
+						argEnumerator.MoveNext();
+						var f = argEnumerator.Current;
+
+						argEnumerator.MoveNext();
+						var df = argEnumerator.Current;
+
+						argEnumerator.MoveNext();
+
+						d.Push(f, df);
+
+						break;
 					case "fsize":
 						argEnumerator.MoveNext();
 						var file = argEnumerator.Current;
@@ -77,7 +86,21 @@ namespace Andro
 						return d.GetFileSize(file);
 
 						break;
+					case "ctx":
+						argEnumerator.MoveNext();
+						var op = argEnumerator.Current;
 
+						if (op=="add") {
+							Util.Add();
+						}
+
+						if (op=="rm") {
+							Util.Remove();
+							
+						}
+						
+						argEnumerator.MoveNext();
+						break;
 					case "pushall":
 						argEnumerator.MoveNext();
 						var dir = argEnumerator.Current;

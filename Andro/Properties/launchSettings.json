@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Andro": {
-      "commandName": "Project",
-      "commandLineArgs": "pushall \"G:\\Google Drive (alt)\\win64_sys\\Rule 34\\Overwatch\\Butts of Overwatch\\Original\" sdcard/"
+      "commandName": "Project"
     }
   }
 }
