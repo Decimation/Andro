@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Andro.Core;
 using Microsoft.Win32;
 using Novus.Win32;
-using SimpleCore.Console.CommandLine;
+using SimpleCore.Cli;
 
 #pragma warning disable CA1416
 namespace Andro.Android
@@ -23,8 +23,6 @@ namespace Andro.Android
 
 
 		/*
-		 *
-		 *
 		 * HKEY_CLASSES_ROOT is an alias, a merging, of two other locations:
 		 *		HKEY_CURRENT_USER\Software\Classes
 		 *		HKEY_LOCAL_MACHINE\Software\Classes
@@ -37,12 +35,12 @@ namespace Andro.Android
 		{
 			var shell = Registry.CurrentUser.OpenSubKey(REG_SHELL);
 
-			if (shell!=null) {
+			if (shell != null) {
 				shell.Close();
 				Registry.CurrentUser.DeleteSubKeyTree(REG_SHELL);
 			}
 		}
-		
+
 		public static bool Add()
 		{
 			RegistryKey shell    = null;
@@ -53,18 +51,17 @@ namespace Andro.Android
 
 
 			string fullPath = ExeLocation;
-			
+
 			//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
-			
-			try
-			{
-				
+
+			try {
+
 				shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
 				shell?.SetValue("MUIVerb", Info.NAME);
 				shell?.SetValue("Icon", $"\"{fullPath}\"");
 				shell?.SetValue("subcommands", string.Empty);
 
-				
+
 				main = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN);
 				main?.SetValue(null, "Main action");
 				main?.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
@@ -83,7 +80,7 @@ namespace Andro.Android
 
 			}
 			catch (Exception ex) {
-				NConsole.WriteError($"{ex.Message}");
+				NConsole.Write($"{ex.Message}");
 				return false;
 			}
 			finally {
@@ -96,5 +93,9 @@ namespace Andro.Android
 
 			return true;
 		}
+
+		internal const string STRING_FORMAT_ARG = "str";
+
+		internal const string DEBUG_COND = "DEBUG";
 	}
 }

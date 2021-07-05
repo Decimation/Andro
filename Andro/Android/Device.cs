@@ -12,6 +12,7 @@ using Andro.Diagnostics;
 using JetBrains.Annotations;
 using Novus;
 using Novus.Win32;
+using SimpleCore.Diagnostics;
 using static Andro.Android.IO.AllCommands;
 using static Andro.Android.IO.CommandResult;
 
@@ -55,18 +56,19 @@ namespace Andro.Android
 
 		public Device() : this(FirstAvailableDevice) { }
 
+
 		public Device(string deviceName, ConnectionMode mode = ConnectionMode.UNKNOWN)
 		{
 			DeviceName = deviceName;
 
 			Mode = mode == ConnectionMode.UNKNOWN ? ResolveConnectionMode(deviceName) : mode;
 
-			GuardAdb.AssertDeviceAvailable(AvailableDevices, deviceName);
+			Guard.AssertContains(AvailableDevices, deviceName);
 		}
 
 		private static ConnectionMode ResolveConnectionMode(string deviceName)
 		{
-			var isIPAddr = IPAddress.TryParse(deviceName, out var ip);
+			bool isIPAddr = IPAddress.TryParse(deviceName, out _);
 
 			return isIPAddr ? ConnectionMode.TCPIP : ConnectionMode.USB;
 		}
@@ -127,8 +129,7 @@ namespace Andro.Android
 			//
 
 			var devices = AvailableDevices;
-
-			GuardAdb.AssertSingleDevice(devices);
+			
 
 			var deviceName = devices.First();
 
@@ -264,7 +265,7 @@ namespace Andro.Android
 			foreach (string file in files) {
 				var fi = new FileInfo(file);
 
-				Global_Andro.Write("Push {0} -> {1}", fi.Name, remoteDestFolder);
+				Trace.WriteLine($"Push {fi.Name} -> {remoteDestFolder}");
 
 				Push(file, remoteDestFolder);
 				//Console.ReadLine();

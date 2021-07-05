@@ -26,10 +26,10 @@
       <HintPath>..\..\Novus\Novus\bin\Release\net5.0\Novus.dll</HintPath>
     </Reference>
     <Reference Include="SimpleCore">
-      <HintPath>..\..\Novus\Novus\bin\Release\net5.0\SimpleCore.dll</HintPath>
+      <HintPath>..\..\..\RiderProjects\SimpleCore\SimpleCore\bin\Release\net5.0\SimpleCore.dll</HintPath>
     </Reference>
-    <Reference Include="SimpleCore.Console">
-      <HintPath>..\..\..\RiderProjects\SimpleCore\SimpleCore.Console\bin\Release\net5.0\SimpleCore.Console.dll</HintPath>
+    <Reference Include="SimpleCore.Cli">
+      <HintPath>..\..\..\RiderProjects\SimpleCore\SimpleCore.Cli\bin\Release\net5.0\SimpleCore.Cli.dll</HintPath>
     </Reference>
   </ItemGroup>
 

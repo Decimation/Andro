@@ -2,13 +2,19 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Xml;
 using Andro.Android;
 using Andro.Core;
 using Andro.Diagnostics;
 using JetBrains.Annotations;
 using Novus;
-using SimpleCore.Console.CommandLine;
+using SimpleCore.Cli;
 using SimpleCore.Utilities;
+
+// ReSharper disable IdentifierTypo
+
+// ReSharper disable StringLiteralTypo
+#pragma warning disable IDE0060
 
 #nullable enable
 namespace Andro
@@ -20,10 +26,15 @@ namespace Andro
 	{
 		public static void Main(string[] args)
 		{
+#if DEBUG
+			if (!args.Any()) {
+				args = new[] {"ctx", "rm"};
+			}
+#endif
 			/*
 			 * Setup
 			 */
-			
+
 			Console.Title = Info.NAME;
 			NConsole.Init();
 			NConsole.Write(Info.NAME);
@@ -31,32 +42,35 @@ namespace Andro
 			/*
 			 *
 			 */
-			
-			var data = ReadFromArguments();
+
+			var data = ReadFromArguments(args);
 
 			Console.WriteLine(">> {0}", data);
+			
 
 			NConsole.WaitForInput();
 		}
 
-		private static object? ReadFromArguments()
+		private static object? ReadFromArguments(string[] args)
 		{
-			var args = Environment.GetCommandLineArgs()
-				.Skip(1)
-				.ToArray();
+			//var args = Environment.GetCommandLineArgs()
+			//                      .Skip(1)
+			//                      .ToArray();
 
-			Debug.WriteLine(args.QuickJoin(Formatting.SPACE.ToString()));
-			
+			//args = args.Skip(1).ToArray();
+
+			Debug.WriteLine(args.QuickJoin(StringConstants.SPACE.ToString()));
+
 
 			if (!args.Any()) {
-
 				return null;
 			}
 
 			var       argQueue      = new Queue<string>(args);
 			using var argEnumerator = argQueue.GetEnumerator();
 
-			var d = new Device(Device.FirstAvailableDevice);
+			var d = new Device();
+
 			Console.WriteLine(d);
 
 			while (argEnumerator.MoveNext()) {
@@ -85,20 +99,19 @@ namespace Andro
 
 						return d.GetFileSize(file);
 
-						break;
 					case "ctx":
 						argEnumerator.MoveNext();
 						var op = argEnumerator.Current;
 
-						if (op=="add") {
+						if (op == "add") {
 							Util.Add();
 						}
 
-						if (op=="rm") {
+						if (op == "rm") {
 							Util.Remove();
-							
+
 						}
-						
+
 						argEnumerator.MoveNext();
 						break;
 					case "pushall":

@@ -1,23 +1,8 @@
 ﻿using System;
 using System.Text;
 using JetBrains.Annotations;
-using static Andro.Diagnostics.Global_Andro;
 #pragma warning disable IDE0079
-#pragma warning disable HAA0601 // Value type to reference type conversion causing boxing allocation
-#pragma warning disable HAA0602 // Delegate on struct instance caused a boxing allocation
-#pragma warning disable HAA0603 // Delegate allocation from a method group
-#pragma warning disable HAA0604 // Delegate allocation from a method group
 
-#pragma warning disable HAA0501 // Explicit new array type allocation
-#pragma warning disable HAA0502 // Explicit new reference type allocation
-#pragma warning disable HAA0503 // Explicit new reference type allocation
-#pragma warning disable HAA0504 // Implicit new array creation allocation
-#pragma warning disable HAA0505 // Initializer reference type allocation
-#pragma warning disable HAA0506 // Let clause induced allocation
-
-#pragma warning disable HAA0301 // Closure Allocation Source
-#pragma warning disable HAA0302 // Display class allocation to capture closure
-#pragma warning disable HAA0303 // Lambda or anonymous method in a generic method allocates a delegate instance
 
 #nullable enable
 namespace Andro.Android.IO
@@ -47,12 +32,12 @@ namespace Andro.Android.IO
 		public CommandPacket(string command) : this(CommandScope.Adb, command) { }
 
 
-		[StringFormatMethod(STRING_FORMAT_ARG)]
+		[StringFormatMethod(Util.STRING_FORMAT_ARG)]
 		public CommandPacket(string command, string? str = null, params object[] args)
 			: this(CommandScope.Adb, command, str, args) { }
 
 
-		[StringFormatMethod(STRING_FORMAT_ARG)]
+		[StringFormatMethod(Util.STRING_FORMAT_ARG)]
 		public CommandPacket(CommandScope scope, string command, string? str = null, params object[] args)
 		{
 			Command = command;
@@ -67,7 +52,7 @@ namespace Andro.Android.IO
 
 			if (str != null) {
 
-				sb.Append(" ");
+				sb.Append(' ');
 
 				sb.AppendFormat(str, args);
 			}
@@ -92,7 +77,7 @@ namespace Andro.Android.IO
 			{
 				CommandScope.Adb      => ADB,
 				CommandScope.AdbShell => ADB_SHELL,
-				_                     => throw new ArgumentException()
+				_                     => throw new ArgumentOutOfRangeException(nameof(scope))
 			};
 		}
 
