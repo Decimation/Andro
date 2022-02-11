@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Andro.Com;
+namespace Andro.Utilities;
 
 [ComImport]
 [Guid("00021401-0000-0000-C000-000000000046")]

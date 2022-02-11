@@ -7,10 +7,9 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using System.Xml;
 using Andro.Android;
-using Andro.Com;
-using Andro.Core;
 using Andro.Diagnostics;
 using Andro.Properties;
+using Andro.Utilities;
 using JetBrains.Annotations;
 using Kantan.Cli;
 using Kantan.Text;
@@ -27,189 +26,172 @@ using Strings = Kantan.Text.Strings;
 // ReSharper disable StringLiteralTypo
 #pragma warning disable IDE0060
 
-namespace Andro
+namespace Andro;
+
+/*
+ *
+ */
+public static class Program
 {
-	/*
-	 *
-	 */
-	public static class Program
+	public const  string ADB_PUSH   = "/adb-push";
+	public const  string ADD_SENDTO = "add-sendto";
+	public const  string RM_SENDTO  = "rm-sendto";
+
+	public static string AppExe;
+
+	static Program()
 	{
-		private const  string ADB_PUSH   = "/adb-push";
-		private const  string ADD_SENDTO = "add-sendto";
-		private static string AppExe;
+		var mainModule = Process.GetCurrentProcess().MainModule;
+		Debug.Assert(mainModule != null);
+		AppExe = mainModule.FileName;
 
-		static Program()
-		{
-			var mainModule = Process.GetCurrentProcess().MainModule;
-			Debug.Assert(mainModule != null);
-			AppExe = mainModule.FileName;
+	}
 
-		}
-
-		public static void Main(string[] args)
-		{
+	public static void Main(string[] args)
+	{
 #if TEST
 			if (!args.Any()) {
 				args = new[] {"ctx", "rm"};
 			}
 #endif
 
-			Console.WriteLine($"{args?.QuickJoin()}");
+		Console.WriteLine($"{args?.QuickJoin()}");
 
-			if (args != null && args.Any()) {
-				switch (args.First()) {
-					case ADD_SENDTO:
-						AddSendTo();
-						break;
-					case ADB_PUSH:
-						args = args.Skip(1).ToArray();
+		if (args != null && args.Any()) {
+			switch (args.First()) {
+				case ADD_SENDTO:
+					AppIntegration.HandleSendTo(true);
+					break;
+				case RM_SENDTO:
+					AppIntegration.HandleSendTo(false);
 
-						var plr = Parallel.For(0, args.Length, (i, pls) =>
-						{
-							// var rx=Command.Run("adb", $"push {s} sdcard/");
-							// rx.Start();
+					break;
+				case ADB_PUSH:
+					args = args.Skip(1).ToArray();
 
-							var device = Device.First;
+					var plr = Parallel.For(0, args.Length, (i, pls) =>
+					{
+						// var rx=Command.Run("adb", $"push {s} sdcard/");
+						// rx.Start();
 
-							var destFolder = "sdcard/";
+						var device = Device.First;
 
-							var cr = device.Push($"{args[i]}", destFolder);
+						var destFolder = "sdcard/";
+
+						var cr = device.Push($"{args[i]}", destFolder);
 
 
-							Console.WriteLine(cr.StandardOutput.QuickJoin("\n"));
-							// Console.WriteLine(rx.StandardOutput.ReadLine());
-						});
+						Console.WriteLine(cr.StandardOutput.QuickJoin("\n"));
 
-						break;
-				}
+						// Console.WriteLine(rx.StandardOutput.ReadLine());
+					});
+
+					break;
 			}
-
-
-			/*
-			 * Setup
-			 */
-
-			Console.Title = Resources.Name;
-
-
-			/*
-			 *
-			 */
-
-			var data = ReadFromArguments(args);
-
-			Console.WriteLine(">> {0}", data);
-
-
-			ConsoleManager.WaitForInput();
 		}
 
-		private static void AddSendTo()
-		{
 
-			var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-			                          @"AppData\Roaming\Microsoft\Windows\SendTo");
+		/*
+		 * Setup
+		 */
 
-			Debug.WriteLine($"{AppExe}");
-
-			// string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
-
-			var link = (IShellLink) new ShellLink();
-
-			// setup shortcut information
-			// link.SetDescription("My Description");
-			link.SetPath(AppExe);
-			link.SetArguments(ADB_PUSH);
-
-			// save it
-			var file = (IPersistFile) link;
-			// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-			file.Save(Path.Combine(sendTo, Resources.NameShortcut), false);
-		}
-
-		[CanBeNull]
-		private static object ReadFromArguments(string[] args)
-		{
-			//var args = Environment.GetCommandLineArgs()
-			//                      .Skip(1)
-			//                      .ToArray();
-
-			//args = args.Skip(1).ToArray();
-
-			Debug.WriteLine(args.QuickJoin(Strings.Constants.SPACE.ToString()));
+		Console.Title = Resources.Name;
 
 
-			if (!args.Any()) {
-				return null;
-			}
+		/*
+		 *
+		 */
 
-			var argQueue = new Queue<string>(args);
+		var data = ReadFromArguments(args);
 
-			using var argEnumerator = argQueue.GetEnumerator();
+		Console.WriteLine(">> {0}", data);
 
-			var d = Device.First;
 
-			Console.WriteLine(d);
+		ConsoleManager.WaitForInput();
+	}
 
-			while (argEnumerator.MoveNext()) {
-				string argValue = argEnumerator.Current;
+	[CanBeNull]
+	private static object ReadFromArguments(string[] args)
+	{
+		//var args = Environment.GetCommandLineArgs()
+		//                      .Skip(1)
+		//                      .ToArray();
 
-				// todo: structure
+		//args = args.Skip(1).ToArray();
 
-				switch (argValue) {
-					case "push":
-						argEnumerator.MoveNext();
-						var f = argEnumerator.Current;
+		Debug.WriteLine(args.QuickJoin(Strings.Constants.SPACE.ToString()));
 
-						argEnumerator.MoveNext();
-						var df = argEnumerator.Current;
 
-						argEnumerator.MoveNext();
-
-						d.Push(f, df);
-
-						break;
-					case "fsize":
-						argEnumerator.MoveNext();
-						var file = argEnumerator.Current;
-
-						argEnumerator.MoveNext();
-
-						return d.GetFileSize(file);
-
-					case "ctx":
-						argEnumerator.MoveNext();
-						var op = argEnumerator.Current;
-
-						if (op == "add") {
-							AppIntegration.Add();
-						}
-
-						if (op == "rm") {
-							AppIntegration.Remove();
-
-						}
-
-						argEnumerator.MoveNext();
-						break;
-					case "pushall":
-						argEnumerator.MoveNext();
-						var dir = argEnumerator.Current;
-
-						argEnumerator.MoveNext();
-						var rdir = argEnumerator.Current;
-
-						argEnumerator.MoveNext();
-
-						d.PushAll(dir, rdir);
-
-						break;
-					default:
-						break;
-				}
-			}
-
+		if (!args.Any()) {
 			return null;
 		}
+
+		var argQueue = new Queue<string>(args);
+
+		using var argEnumerator = argQueue.GetEnumerator();
+
+		var d = Device.First;
+
+		Console.WriteLine(d);
+
+		while (argEnumerator.MoveNext()) {
+			string argValue = argEnumerator.Current;
+
+			// todo: structure
+
+			switch (argValue) {
+				case "push":
+					argEnumerator.MoveNext();
+					var f = argEnumerator.Current;
+
+					argEnumerator.MoveNext();
+					var df = argEnumerator.Current;
+
+					argEnumerator.MoveNext();
+
+					d.Push(f, df);
+
+					break;
+				case "fsize":
+					argEnumerator.MoveNext();
+					var file = argEnumerator.Current;
+
+					argEnumerator.MoveNext();
+
+					return d.GetFileSize(file);
+
+				case "ctx":
+					argEnumerator.MoveNext();
+					var op = argEnumerator.Current;
+
+					if (op == "add") {
+						AppIntegration.Add();
+					}
+
+					if (op == "rm") {
+						AppIntegration.Remove();
+
+					}
+
+					argEnumerator.MoveNext();
+					break;
+				case "pushall":
+					argEnumerator.MoveNext();
+					var dir = argEnumerator.Current;
+
+					argEnumerator.MoveNext();
+					var rdir = argEnumerator.Current;
+
+					argEnumerator.MoveNext();
+
+					d.PushAll(dir, rdir);
+
+					break;
+				default:
+					break;
+			}
+		}
+
+		return null;
 	}
 }

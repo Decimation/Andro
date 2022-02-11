@@ -2,12 +2,11 @@
 
 // ReSharper disable UnusedMember.Global
 #nullable enable
-namespace Andro.Diagnostics
-{
-	public sealed class AdbException : Exception
-	{
-		public AdbException() { }
+namespace Andro.Diagnostics;
 
-		public AdbException(string? message) : base(message) { }
-	}
+public sealed class AdbException : Exception
+{
+	public AdbException() { }
+
+	public AdbException(string? message) : base(message) { }
 }

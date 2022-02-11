@@ -7,15 +7,13 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
-using Andro.Core;
 using Andro.Diagnostics;
-using Andro.IO;
 using JetBrains.Annotations;
 using Novus;
 using Novus.OS.Win32;
 using Kantan.Diagnostics;
-using static Andro.IO.AllCommands;
-using static Andro.IO.CommandResult;
+using static Andro.Android.AllCommands;
+using static Andro.Android.CommandResult;
 
 // ReSharper disable InconsistentNaming
 
@@ -40,248 +38,247 @@ using static Andro.IO.CommandResult;
 
 #pragma warning disable HAA0101
 
-namespace Andro.Android
+namespace Andro.Android;
+
+public enum ConnectionMode
 {
-	public enum ConnectionMode
+	USB,
+	TCPIP,
+	UNKNOWN
+}
+
+public class Device
+{
+	public string DeviceName { get; }
+
+	public ConnectionMode Mode { get; }
+
+	// public Device() : this(FirstName) { }
+
+
+	public Device(string deviceName, ConnectionMode mode = ConnectionMode.UNKNOWN)
 	{
-		USB,
-		TCPIP,
-		UNKNOWN
+		DeviceName = deviceName;
+
+		Mode = mode == ConnectionMode.UNKNOWN ? ResolveConnectionMode(deviceName) : mode;
+
+		Require.Assert(AvailableDeviceNames.Contains(deviceName));
 	}
 
-	public class Device
+	private static ConnectionMode ResolveConnectionMode(string deviceName)
 	{
-		public string DeviceName { get; }
+		bool isIPAddr = IPAddress.TryParse(deviceName, out _);
 
-		public ConnectionMode Mode { get; }
+		return isIPAddr ? ConnectionMode.TCPIP : ConnectionMode.USB;
+	}
 
-		// public Device() : this(FirstName) { }
+	public static Device First { get; } = new(FirstName);
 
-
-		public Device(string deviceName, ConnectionMode mode = ConnectionMode.UNKNOWN)
+	public static string FirstName
+	{
+		get
 		{
-			DeviceName = deviceName;
+			var d = AvailableDeviceNames.FirstOrDefault();
 
-			Mode = mode == ConnectionMode.UNKNOWN ? ResolveConnectionMode(deviceName) : mode;
-
-			Require.Assert(AvailableDeviceNames.Contains(deviceName));
-		}
-
-		private static ConnectionMode ResolveConnectionMode(string deviceName)
-		{
-			bool isIPAddr = IPAddress.TryParse(deviceName, out _);
-
-			return isIPAddr ? ConnectionMode.TCPIP : ConnectionMode.USB;
-		}
-
-		public static Device First { get; } = new(FirstName);
-
-		public static string FirstName
-		{
-			get
-			{
-				var d = AvailableDeviceNames.FirstOrDefault();
-
-				if (d == null) {
-					throw new AdbException();
-				}
-
-				return d;
-			}
-		}
-
-		public static string[] AvailableDeviceNames
-		{
-			get
-			{
-				using var proc = new CommandMessage(CMD_DEVICES).Run();
-
-
-				// Skip first line
-				var stdOut = proc.StandardOutput
-				                 .Skip(1)
-				                 .Where(s => !string.IsNullOrWhiteSpace(s))
-				                 .Select(s => s.Split('\t')[0])
-				                 .ToArray();
-
-				return stdOut;
-			}
-		}
-
-
-		public static Device SetConnectionMode(ConnectionMode mode)
-		{
-			//
-
-			var packet = mode switch
-			{
-				ConnectionMode.USB   => new CommandMessage(CMD_USB),
-				ConnectionMode.TCPIP => new CommandMessage(CMD_TCPIP, CommandMessage.TCPIP),
-				_                    => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-			};
-
-			packet.Run();
-
-			/*
-			 * Wait a bit for the device to connect
-			 */
-
-			Thread.Sleep(TimeSpan.FromSeconds(3));
-
-
-			//
-
-			var devices = AvailableDeviceNames;
-
-
-			var deviceName = devices.First();
-
-			var device = new Device(deviceName, mode);
-
-			return device;
-		}
-
-		public int GetFileSize(string remoteFile)
-		{
-			EnsureDevice();
-
-			var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
-
-			using var cmd = packet.Run();
-
-			if (cmd.StandardError != null && cmd.StandardError.Any(s => s.Contains("No such file"))) {
-				return Native.INVALID;
+			if (d == null) {
+				throw new AdbException();
 			}
 
-			if (cmd.StandardOutput.Any()) {
+			return d;
+		}
+	}
 
-				var output = cmd.StandardOutput.First().Split(' ');
+	public static string[] AvailableDeviceNames
+	{
+		get
+		{
+			using var proc = new CommandMessage(CMD_DEVICES).Run();
 
-				// var lines  = int.Parse(output[0]);
-				// var words  = int.Parse(output[1]);
-				var bytes = int.Parse(output[2]);
-				// var file   = output[3];
+
+			// Skip first line
+			var stdOut = proc.StandardOutput
+			                 .Skip(1)
+			                 .Where(s => !string.IsNullOrWhiteSpace(s))
+			                 .Select(s => s.Split('\t')[0])
+			                 .ToArray();
+
+			return stdOut;
+		}
+	}
 
 
-				return bytes;
-			}
+	public static Device SetConnectionMode(ConnectionMode mode)
+	{
+		//
 
+		var packet = mode switch
+		{
+			ConnectionMode.USB   => new CommandMessage(CMD_USB),
+			ConnectionMode.TCPIP => new CommandMessage(CMD_TCPIP, CommandMessage.TCPIP),
+			_                    => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+		};
+
+		packet.Run();
+
+		/*
+		 * Wait a bit for the device to connect
+		 */
+
+		Thread.Sleep(TimeSpan.FromSeconds(3));
+
+
+		//
+
+		var devices = AvailableDeviceNames;
+
+
+		var deviceName = devices.First();
+
+		var device = new Device(deviceName, mode);
+
+		return device;
+	}
+
+	public int GetFileSize(string remoteFile)
+	{
+		EnsureDevice();
+
+		var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+
+		using var cmd = packet.Run();
+
+		if (cmd.StandardError != null && cmd.StandardError.Any(s => s.Contains("No such file"))) {
 			return Native.INVALID;
 		}
 
-		public bool FileExists(string remoteFile)
-		{
-			EnsureDevice();
+		if (cmd.StandardOutput.Any()) {
 
-			var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+			var output = cmd.StandardOutput.First().Split(' ');
+
+			// var lines  = int.Parse(output[0]);
+			// var words  = int.Parse(output[1]);
+			var bytes = int.Parse(output[2]);
+			// var file   = output[3];
+
+
+			return bytes;
+		}
+
+		return Native.INVALID;
+	}
+
+	public bool FileExists(string remoteFile)
+	{
+		EnsureDevice();
+
+		var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+
+		using var cmd = packet.Run();
+
+		var fs = GetFileSize(remoteFile);
+
+		return fs != Native.INVALID;
+	}
+
+	public void Remove(string remoteFile)
+	{
+		EnsureDevice();
+
+		var packet = new CommandMessage(CommandScope.AdbShell, CMD_RM, $"-f \"{remoteFile}\"");
+
+		using var cmd = packet.Run();
+	}
+
+	public string Pull(string remoteFile, string localDestFolder)
+	{
+		EnsureDevice();
+
+		var fileName = Path.GetFileName(remoteFile);
+
+		var destFileName = Path.Combine(localDestFolder, fileName);
+
+		var packet = new CommandMessage(CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
+
+		using var cmd = packet.Run();
+
+		return destFileName;
+	}
+
+	public string[] GetFiles(string remoteFolder)
+	{
+		EnsureDevice();
+
+		var packet = new CommandMessage(CommandScope.AdbShell, CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
+
+		using var cmd = packet.Run();
+
+		var output = cmd.StandardOutput;
+
+		return output;
+	}
+
+	/// <summary>
+	/// Ensures only <see cref="DeviceName"/> is connected
+	/// </summary>
+	public void EnsureDevice() => EnsureDevice(DeviceName);
+
+	/// <summary>
+	/// Ensures only <paramref name="name"/> is connected
+	/// </summary>
+	public static void EnsureDevice(string name)
+	{
+		Debug.WriteLine($"Ensuring devices {name}");
+
+		var otherDevices = AvailableDeviceNames.Where(n => n != name).ToArray();
+
+		foreach (string otherDevice in otherDevices) {
+			Debug.WriteLine($"Disconnecting {otherDevice}");
+
+			var packet = new CommandMessage(CommandScope.Adb, $"-s {otherDevice} disconnect");
 
 			using var cmd = packet.Run();
+		}
+	}
 
-			var fs = GetFileSize(remoteFile);
+	public CommandResult Push(string localSrcFile, string remoteDestFolder)
+	{
+		EnsureDevice();
 
-			return fs != Native.INVALID;
+		var packet = new CommandMessage(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
+
+		var cmd = packet.Run();
+
+		return cmd;
+	}
+
+
+	public CommandResult[] PushAll(string localSrcFolder, string remoteDestFolder)
+	{
+		EnsureDevice();
+
+		var files = Directory.GetFiles(localSrcFolder);
+
+		var rg = new List<CommandResult>();
+
+		foreach (string file in files) {
+			var fi = new FileInfo(file);
+
+			Trace.WriteLine($"Push {fi.Name} -> {remoteDestFolder}");
+			var p = Push(file, remoteDestFolder);
+			//Console.ReadLine();
+			rg.Add(p);
 		}
 
-		public void Remove(string remoteFile)
-		{
-			EnsureDevice();
+		return rg.ToArray();
+	}
 
-			var packet = new CommandMessage(CommandScope.AdbShell, CMD_RM, $"-f \"{remoteFile}\"");
+	public override string ToString()
+	{
+		var sb = new StringBuilder();
 
-			using var cmd = packet.Run();
-		}
+		sb.AppendFormat($"Name: {DeviceName}\n")
+		  .AppendFormat($"Mode: {Mode}\n");
 
-		public string Pull(string remoteFile, string localDestFolder)
-		{
-			EnsureDevice();
-
-			var fileName = Path.GetFileName(remoteFile);
-
-			var destFileName = Path.Combine(localDestFolder, fileName);
-
-			var packet = new CommandMessage(CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
-
-			using var cmd = packet.Run();
-
-			return destFileName;
-		}
-
-		public string[] GetFiles(string remoteFolder)
-		{
-			EnsureDevice();
-
-			var packet = new CommandMessage(CommandScope.AdbShell, CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
-
-			using var cmd = packet.Run();
-
-			var output = cmd.StandardOutput;
-
-			return output;
-		}
-
-		/// <summary>
-		/// Ensures only <see cref="DeviceName"/> is connected
-		/// </summary>
-		public void EnsureDevice() => EnsureDevice(DeviceName);
-
-		/// <summary>
-		/// Ensures only <paramref name="name"/> is connected
-		/// </summary>
-		public static void EnsureDevice(string name)
-		{
-			Debug.WriteLine($"Ensuring devices {name}");
-
-			var otherDevices = AvailableDeviceNames.Where(n => n != name).ToArray();
-
-			foreach (string otherDevice in otherDevices) {
-				Debug.WriteLine($"Disconnecting {otherDevice}");
-
-				var packet = new CommandMessage(CommandScope.Adb, $"-s {otherDevice} disconnect");
-
-				using var cmd = packet.Run();
-			}
-		}
-
-		public CommandResult Push(string localSrcFile, string remoteDestFolder)
-		{
-			EnsureDevice();
-
-			var packet = new CommandMessage(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
-
-			var cmd = packet.Run();
-
-			return cmd;
-		}
-
-
-		public CommandResult[] PushAll(string localSrcFolder, string remoteDestFolder)
-		{
-			EnsureDevice();
-
-			var files = Directory.GetFiles(localSrcFolder);
-
-			var rg = new List<CommandResult>();
-
-			foreach (string file in files) {
-				var fi = new FileInfo(file);
-
-				Trace.WriteLine($"Push {fi.Name} -> {remoteDestFolder}");
-				var p = Push(file, remoteDestFolder);
-				//Console.ReadLine();
-				rg.Add(p);
-			}
-
-			return rg.ToArray();
-		}
-
-		public override string ToString()
-		{
-			var sb = new StringBuilder();
-
-			sb.AppendFormat($"Name: {DeviceName}\n")
-			  .AppendFormat($"Mode: {Mode}\n");
-
-			return sb.ToString();
-		}
+		return sb.ToString();
 	}
 }

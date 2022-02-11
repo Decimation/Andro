@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Andro.Com;
+namespace Andro.Utilities;
 
 [ComImport]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
