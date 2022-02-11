@@ -4,14 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Andro.Core;
+using Andro.Properties;
 using Microsoft.Win32;
-using Novus.Win32;
-using SimpleCore.Cli;
+using Novus.OS.Win32;
+using Kantan.Cli;
+using Novus.OS;
 
 #pragma warning disable CA1416
 namespace Andro.Android
 {
-	public static class Util
+	public static class AppIntegration
 	{
 		private const string REG_SHELL = "SOFTWARE\\Classes\\*\\shell\\Andro";
 
@@ -29,7 +31,7 @@ namespace Andro.Android
 		 */
 
 
-		public static string ExeLocation => FileSystem.FindExecutableLocation(Info.NAME_EXE)!;
+		public static string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
 
 		public static void Remove()
 		{
@@ -57,7 +59,7 @@ namespace Andro.Android
 			try {
 
 				shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
-				shell?.SetValue("MUIVerb", Info.NAME);
+				shell?.SetValue("MUIVerb", Resources.Name);
 				shell?.SetValue("Icon", $"\"{fullPath}\"");
 				shell?.SetValue("subcommands", string.Empty);
 
@@ -80,7 +82,7 @@ namespace Andro.Android
 
 			}
 			catch (Exception ex) {
-				NConsole.Write($"{ex.Message}");
+				ConsoleManager.Write($"{ex.Message}");
 				return false;
 			}
 			finally {

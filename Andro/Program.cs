@@ -1,22 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using System.Threading.Tasks;
 using System.Xml;
 using Andro.Android;
+using Andro.Com;
 using Andro.Core;
 using Andro.Diagnostics;
+using Andro.Properties;
 using JetBrains.Annotations;
+using Kantan.Cli;
+using Kantan.Text;
+using Microsoft.VisualBasic;
 using Novus;
-using SimpleCore.Cli;
-using SimpleCore.Utilities;
+using Novus.OS;
+using FileSystem = Novus.OS.FileSystem;
+using Strings = Kantan.Text.Strings;
+
+// ReSharper disable SuspiciousTypeConversion.Global
 
 // ReSharper disable IdentifierTypo
 
 // ReSharper disable StringLiteralTypo
 #pragma warning disable IDE0060
 
-#nullable enable
 namespace Andro
 {
 	/*
@@ -24,20 +34,63 @@ namespace Andro
 	 */
 	public static class Program
 	{
+		private const  string ADB_PUSH   = "/adb-push";
+		private const  string ADD_SENDTO = "add-sendto";
+		private static string AppExe;
+
+		static Program()
+		{
+			var mainModule = Process.GetCurrentProcess().MainModule;
+			Debug.Assert(mainModule != null);
+			AppExe = mainModule.FileName;
+
+		}
+
 		public static void Main(string[] args)
 		{
-#if DEBUG
+#if TEST
 			if (!args.Any()) {
 				args = new[] {"ctx", "rm"};
 			}
 #endif
+
+			Console.WriteLine($"{args?.QuickJoin()}");
+
+			if (args != null && args.Any()) {
+				switch (args.First()) {
+					case ADD_SENDTO:
+						AddSendTo();
+						break;
+					case ADB_PUSH:
+						args = args.Skip(1).ToArray();
+
+						var plr = Parallel.For(0, args.Length, (i, pls) =>
+						{
+							// var rx=Command.Run("adb", $"push {s} sdcard/");
+							// rx.Start();
+
+							var device = Device.First;
+
+							var destFolder = "sdcard/";
+
+							var cr = device.Push($"{args[i]}", destFolder);
+
+
+							Console.WriteLine(cr.StandardOutput.QuickJoin("\n"));
+							// Console.WriteLine(rx.StandardOutput.ReadLine());
+						});
+
+						break;
+				}
+			}
+
+
 			/*
 			 * Setup
 			 */
 
-			Console.Title = Info.NAME;
-			NConsole.Init();
-			NConsole.Write(Info.NAME);
+			Console.Title = Resources.Name;
+
 
 			/*
 			 *
@@ -46,12 +99,36 @@ namespace Andro
 			var data = ReadFromArguments(args);
 
 			Console.WriteLine(">> {0}", data);
-			
 
-			NConsole.WaitForInput();
+
+			ConsoleManager.WaitForInput();
 		}
 
-		private static object? ReadFromArguments(string[] args)
+		private static void AddSendTo()
+		{
+
+			var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+			                          @"AppData\Roaming\Microsoft\Windows\SendTo");
+
+			Debug.WriteLine($"{AppExe}");
+
+			// string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
+
+			var link = (IShellLink) new ShellLink();
+
+			// setup shortcut information
+			// link.SetDescription("My Description");
+			link.SetPath(AppExe);
+			link.SetArguments(ADB_PUSH);
+
+			// save it
+			var file = (IPersistFile) link;
+			// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+			file.Save(Path.Combine(sendTo, Resources.NameShortcut), false);
+		}
+
+		[CanBeNull]
+		private static object ReadFromArguments(string[] args)
 		{
 			//var args = Environment.GetCommandLineArgs()
 			//                      .Skip(1)
@@ -59,17 +136,18 @@ namespace Andro
 
 			//args = args.Skip(1).ToArray();
 
-			Debug.WriteLine(args.QuickJoin(StringConstants.SPACE.ToString()));
+			Debug.WriteLine(args.QuickJoin(Strings.Constants.SPACE.ToString()));
 
 
 			if (!args.Any()) {
 				return null;
 			}
 
-			var       argQueue      = new Queue<string>(args);
+			var argQueue = new Queue<string>(args);
+
 			using var argEnumerator = argQueue.GetEnumerator();
 
-			var d = new Device();
+			var d = Device.First;
 
 			Console.WriteLine(d);
 
@@ -104,11 +182,11 @@ namespace Andro
 						var op = argEnumerator.Current;
 
 						if (op == "add") {
-							Util.Add();
+							AppIntegration.Add();
 						}
 
 						if (op == "rm") {
-							Util.Remove();
+							AppIntegration.Remove();
 
 						}
 

@@ -1,26 +1,29 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Text;
+using Andro.Android;
 using JetBrains.Annotations;
+
 #pragma warning disable IDE0079
 
 
 #nullable enable
-namespace Andro.Android.IO
+namespace Andro.IO
 {
 	public enum CommandScope
 	{
 		/// <summary>
-		/// <see cref="CommandPacket.ADB"/>
+		/// <see cref="CommandMessage.ADB"/>
 		/// </summary>
 		Adb,
 
 		/// <summary>
-		/// <see cref="CommandPacket.ADB_SHELL"/>
+		/// <see cref="CommandMessage.ADB_SHELL"/>
 		/// </summary>
 		AdbShell
 	}
 
-	public readonly struct CommandPacket
+	public readonly struct CommandMessage
 	{
 		public string Command { get; }
 
@@ -29,16 +32,16 @@ namespace Andro.Android.IO
 		public string FullCommand { get;  }
 
 
-		public CommandPacket(string command) : this(CommandScope.Adb, command) { }
+		public CommandMessage(string command) : this(CommandScope.Adb, command) { }
 
 
-		[StringFormatMethod(Util.STRING_FORMAT_ARG)]
-		public CommandPacket(string command, string? str = null, params object[] args)
+		[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
+		public CommandMessage(string command, string? str = null, params object[] args)
 			: this(CommandScope.Adb, command, str, args) { }
 
 
-		[StringFormatMethod(Util.STRING_FORMAT_ARG)]
-		public CommandPacket(CommandScope scope, string command, string? str = null, params object[] args)
+		[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
+		public CommandMessage(CommandScope scope, string command, string? str = null, params object[] args)
 		{
 			Command = command;
 			Scope   = scope;
@@ -64,9 +67,9 @@ namespace Andro.Android.IO
 			FullCommand = $"{strScope} {cmdStr}";
 		}
 
-		public static implicit operator CommandPacket(string command)
+		public static implicit operator CommandMessage(string command)
 		{
-			var p = new CommandPacket(command);
+			var p = new CommandMessage(command);
 
 			return p;
 		}
@@ -95,6 +98,22 @@ namespace Andro.Android.IO
 			sb.AppendFormat("({0}): {1}", Scope, FullCommand);
 
 			return sb.ToString();
+		}
+
+		public CommandResult Run()
+		{
+			var op = new CommandResult(this);
+
+			op.Start();
+
+			return op;
+		}
+
+		public Process RunShell()
+		{
+			var proc = Novus.OS.Command.Shell(FullCommand);
+
+			return proc;
 		}
 	}
 }

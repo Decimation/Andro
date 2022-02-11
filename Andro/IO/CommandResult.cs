@@ -2,14 +2,11 @@
 using System.Diagnostics;
 using System.Text;
 using Andro.Core;
-using Andro.Diagnostics;
-using JetBrains.Annotations;
-using Novus.Win32;
-using SimpleCore.Utilities;
+using Kantan.Utilities;
 
 #pragma warning disable IDE0079
 
-namespace Andro.Android.IO
+namespace Andro.IO
 {
 	public class CommandResult : IDisposable
 	{
@@ -19,17 +16,17 @@ namespace Andro.Android.IO
 
 		public string[] StandardError { get; private set; }
 
-		public CommandPacket CommandPacket { get; }
+		public CommandMessage CommandMessage { get; }
 
-		public CommandResult(CommandPacket cmd)
+		public CommandResult(CommandMessage cmd)
 		{
-			Process     = Commands.RunShellCommand(cmd);
-			CommandPacket = cmd;
+			Process       = cmd.RunShell();
+			CommandMessage = cmd;
 		}
 
 		public void Start()
 		{
-			Trace.WriteLine($"Start {CommandPacket.FullCommand}");
+			Trace.WriteLine($"Start {CommandMessage.FullCommand}");
 			Process.Start();
 
 			StandardOutput = Process.StandardOutput.ReadAllLines();
@@ -40,7 +37,7 @@ namespace Andro.Android.IO
 		public void Dispose()
 		{
 
-			Trace.WriteLine($"Dispose {CommandPacket.FullCommand}");
+			Trace.WriteLine($"Dispose {CommandMessage.FullCommand}");
 			Process.WaitForExit();
 			GC.SuppressFinalize(this);
 		}
@@ -50,7 +47,7 @@ namespace Andro.Android.IO
 		{
 			var sb = new StringBuilder();
 
-			sb.AppendFormat($"{CommandPacket.FullCommand}");
+			sb.AppendFormat($"{CommandMessage.FullCommand}");
 
 			sb.AppendRangeSafe(StandardOutput, "Standard output:\n");
 			sb.AppendRangeSafe(StandardError, "Standard error:\n");

@@ -1,4 +1,4 @@
-﻿namespace Andro.Android.IO
+﻿namespace Andro.IO
 {
 	public static class AllCommands
 	{

@@ -1,20 +1,21 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
-using Andro.Android.IO;
 using Andro.Core;
 using Andro.Diagnostics;
+using Andro.IO;
 using JetBrains.Annotations;
 using Novus;
-using Novus.Win32;
-using SimpleCore.Diagnostics;
-using static Andro.Android.IO.AllCommands;
-using static Andro.Android.IO.CommandResult;
+using Novus.OS.Win32;
+using Kantan.Diagnostics;
+using static Andro.IO.AllCommands;
+using static Andro.IO.CommandResult;
 
 // ReSharper disable InconsistentNaming
 
@@ -54,7 +55,7 @@ namespace Andro.Android
 
 		public ConnectionMode Mode { get; }
 
-		public Device() : this(FirstAvailableDevice) { }
+		// public Device() : this(FirstName) { }
 
 
 		public Device(string deviceName, ConnectionMode mode = ConnectionMode.UNKNOWN)
@@ -63,7 +64,7 @@ namespace Andro.Android
 
 			Mode = mode == ConnectionMode.UNKNOWN ? ResolveConnectionMode(deviceName) : mode;
 
-			Guard.AssertContains(AvailableDevices, deviceName);
+			Require.Assert(AvailableDeviceNames.Contains(deviceName));
 		}
 
 		private static ConnectionMode ResolveConnectionMode(string deviceName)
@@ -73,11 +74,13 @@ namespace Andro.Android
 			return isIPAddr ? ConnectionMode.TCPIP : ConnectionMode.USB;
 		}
 
-		public static string FirstAvailableDevice
+		public static Device First { get; } = new(FirstName);
+
+		public static string FirstName
 		{
 			get
 			{
-				var d = AvailableDevices.FirstOrDefault();
+				var d = AvailableDeviceNames.FirstOrDefault();
 
 				if (d == null) {
 					throw new AdbException();
@@ -87,19 +90,19 @@ namespace Andro.Android
 			}
 		}
 
-		public static string[] AvailableDevices
+		public static string[] AvailableDeviceNames
 		{
 			get
 			{
-				using var proc = Commands.RunCommand(CMD_DEVICES);
+				using var proc = new CommandMessage(CMD_DEVICES).Run();
 
 
 				// Skip first line
 				var stdOut = proc.StandardOutput
-					.Skip(1)
-					.Where(s => !string.IsNullOrWhiteSpace(s))
-					.Select(s => s.Split('\t')[0])
-					.ToArray();
+				                 .Skip(1)
+				                 .Where(s => !string.IsNullOrWhiteSpace(s))
+				                 .Select(s => s.Split('\t')[0])
+				                 .ToArray();
 
 				return stdOut;
 			}
@@ -112,12 +115,12 @@ namespace Andro.Android
 
 			var packet = mode switch
 			{
-				ConnectionMode.USB   => new CommandPacket(CMD_USB),
-				ConnectionMode.TCPIP => new CommandPacket(CMD_TCPIP, CommandPacket.TCPIP),
+				ConnectionMode.USB   => new CommandMessage(CMD_USB),
+				ConnectionMode.TCPIP => new CommandMessage(CMD_TCPIP, CommandMessage.TCPIP),
 				_                    => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
 			};
 
-			Commands.RunCommand(packet);
+			packet.Run();
 
 			/*
 			 * Wait a bit for the device to connect
@@ -128,8 +131,8 @@ namespace Andro.Android
 
 			//
 
-			var devices = AvailableDevices;
-			
+			var devices = AvailableDeviceNames;
+
 
 			var deviceName = devices.First();
 
@@ -142,9 +145,9 @@ namespace Andro.Android
 		{
 			EnsureDevice();
 
-			var packet = new CommandPacket(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+			var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
 
-			using var cmd = Commands.RunCommand(packet);
+			using var cmd = packet.Run();
 
 			if (cmd.StandardError != null && cmd.StandardError.Any(s => s.Contains("No such file"))) {
 				return Native.INVALID;
@@ -170,9 +173,9 @@ namespace Andro.Android
 		{
 			EnsureDevice();
 
-			var packet = new CommandPacket(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+			var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
 
-			using var cmd = Commands.RunCommand(packet);
+			using var cmd = packet.Run();
 
 			var fs = GetFileSize(remoteFile);
 
@@ -183,9 +186,9 @@ namespace Andro.Android
 		{
 			EnsureDevice();
 
-			var packet = new CommandPacket(CommandScope.AdbShell, CMD_RM, $"-f \"{remoteFile}\"");
+			var packet = new CommandMessage(CommandScope.AdbShell, CMD_RM, $"-f \"{remoteFile}\"");
 
-			using var cmd = Commands.RunCommand(packet);
+			using var cmd = packet.Run();
 		}
 
 		public string Pull(string remoteFile, string localDestFolder)
@@ -196,9 +199,9 @@ namespace Andro.Android
 
 			var destFileName = Path.Combine(localDestFolder, fileName);
 
-			var packet = new CommandPacket(CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
+			var packet = new CommandMessage(CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
 
-			using var cmd = Commands.RunCommand(packet);
+			using var cmd = packet.Run();
 
 			return destFileName;
 		}
@@ -207,9 +210,9 @@ namespace Andro.Android
 		{
 			EnsureDevice();
 
-			var packet = new CommandPacket(CommandScope.AdbShell, CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
+			var packet = new CommandMessage(CommandScope.AdbShell, CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
 
-			using var cmd = Commands.RunCommand(packet);
+			using var cmd = packet.Run();
 
 			var output = cmd.StandardOutput;
 
@@ -228,48 +231,47 @@ namespace Andro.Android
 		{
 			Debug.WriteLine($"Ensuring devices {name}");
 
-			var otherDevices = AvailableDevices.Where(n => n != name).ToArray();
+			var otherDevices = AvailableDeviceNames.Where(n => n != name).ToArray();
 
 			foreach (string otherDevice in otherDevices) {
 				Debug.WriteLine($"Disconnecting {otherDevice}");
 
-				var       packet = new CommandPacket(CommandScope.Adb, $"-s {otherDevice} disconnect");
-				using var cmd    = Commands.RunCommand(packet);
+				var packet = new CommandMessage(CommandScope.Adb, $"-s {otherDevice} disconnect");
+
+				using var cmd = packet.Run();
 			}
 		}
 
-		// public static void RunWithDevice(string n, Action fn)
-		// {
-		// 	EnsureDevice(n);
-		// 	fn();
-		// }
-
-		public void Push(string localSrcFile, string remoteDestFolder)
+		public CommandResult Push(string localSrcFile, string remoteDestFolder)
 		{
 			EnsureDevice();
 
-			var packet = new CommandPacket(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
-			
-			
-			using var cmd = Commands.RunCommand(packet);
-			
+			var packet = new CommandMessage(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
+
+			var cmd = packet.Run();
+
+			return cmd;
 		}
 
 
-		public void PushAll(string localSrcFolder, string remoteDestFolder)
+		public CommandResult[] PushAll(string localSrcFolder, string remoteDestFolder)
 		{
 			EnsureDevice();
 
 			var files = Directory.GetFiles(localSrcFolder);
 
+			var rg = new List<CommandResult>();
+
 			foreach (string file in files) {
 				var fi = new FileInfo(file);
 
 				Trace.WriteLine($"Push {fi.Name} -> {remoteDestFolder}");
-
-				Push(file, remoteDestFolder);
+				var p = Push(file, remoteDestFolder);
 				//Console.ReadLine();
+				rg.Add(p);
 			}
+
+			return rg.ToArray();
 		}
 
 		public override string ToString()
@@ -277,7 +279,7 @@ namespace Andro.Android
 			var sb = new StringBuilder();
 
 			sb.AppendFormat($"Name: {DeviceName}\n")
-				.AppendFormat($"Mode: {Mode}\n");
+			  .AppendFormat($"Mode: {Mode}\n");
 
 			return sb.ToString();
 		}
