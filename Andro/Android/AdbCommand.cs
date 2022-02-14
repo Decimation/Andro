@@ -93,9 +93,9 @@ public class AdbCommand : IDisposable
 
 	public void Dispose()
 	{
-		Trace.WriteLine($"Dispose {BuiltCommand}");
+		// Trace.WriteLine($"Dispose {BuiltCommand}");
 
-		Process.WaitForExit();
+		Process?.WaitForExit();
 
 		Process        = null;
 		StandardError  = null;
@@ -110,7 +110,7 @@ public class AdbCommand : IDisposable
 
 	public void Start()
 	{
-		Trace.WriteLine($"Start {BuiltCommand}");
+		// Trace.WriteLine($"Start {BuiltCommand}");
 
 		Process.Start();
 

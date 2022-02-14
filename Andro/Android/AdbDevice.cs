@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading;
 using Novus.OS.Win32;
 using Kantan.Diagnostics;
+using Novus.OS;
 
 // ReSharper disable InconsistentNaming
 
@@ -222,13 +223,20 @@ public class AdbDevice
 		return cmd;
 	}
 
+	public Process Shell(DataReceivedEventHandler outputHandler = null, DataReceivedEventHandler errorHandler = null)
+	{
+		Process p = Command.Run(Native.CMD_EXE, outputHandler, errorHandler);
+		p.StandardInput.WriteLine(AdbCommands.ADB_SHELL);
+		return p;
+
+	}
+
 	/// <summary>
 	/// Ensures only <see cref="Name"/> is connected
 	/// </summary>
 	public bool IsConnected()
 	{
 		if (!_ensure) {
-			Debug.WriteLine($" skip check");
 			return true;
 		}
 
@@ -302,13 +310,18 @@ public class AdbDevice
 	public AdbCommand Push(string localSrcFile, string remoteDestFolder)
 	{
 		EnsureDevice();
-
+		
 		var packet = AdbCommands.push(localSrcFile, remoteDestFolder);
-		var cmd    = packet.Build();
+
+		var cmd = packet.Build();
 
 		return cmd;
 	}
 
+	public Task<AdbCommand> PushAsync(string localSrcFile, string remoteDestFolder)
+	{
+		return  Task.Run(() => Push(localSrcFile, remoteDestFolder));
+	}
 
 	public AdbCommand[] PushFolder(string localSrcFolder, string remoteDestFolder)
 	{

@@ -40,6 +40,8 @@ namespace Andro;
  */
 public static class Program
 {
+	private static AdbDevice _device;
+
 	public const string PULL_ALL    = "/pull-all";
 	public const string PUSH_ALL    = "/push-all";
 	public const string PUSH_FOLDER = "/push-folder";
@@ -53,29 +55,32 @@ public static class Program
 	public const string OP_RM  = "rm";
 
 
-	public static void Main(string[] args)
+	public static async Task Main(string[] args)
 	{
 #if TEST
 		if (!args.Any()) {
 			args = new[] { APP_SENDTO, OP_ADD, APP_CTX, OP_ADD };
+
 			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat", @"C:\users\deci\downloads" };
 			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat" };
 
 		}
 #endif
 		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
+
 		/*
 		 * Setup
 		 */
 
 		Console.Title = Resources.Name;
-		
+
 		/*
 		 *
 		 */
 
+		_device = AdbDevice.First;
 
-		object data = ReadArguments(args);
+		object data = await ReadArguments(args);
 
 		switch (data) {
 			case null:
@@ -92,13 +97,15 @@ public static class Program
 					Console.WriteLine(obj);
 				}
 
-				return;
+				break;
 			}
-			// Console.WriteLine($">> {data}".AddColor(Color.PaleGreen));
+			case AdbCommand c:
+				Console.WriteLine(c);
+				break;
 			case AdbCommand[] commands:
 			{
-				foreach (AdbCommand adbCommand in commands) {
-					Console.WriteLine(adbCommand);
+				foreach (AdbCommand cmd in commands) {
+					Console.WriteLine(cmd);
 				}
 
 				break;
@@ -107,11 +114,10 @@ public static class Program
 
 		ConsoleManager.WaitForInput();
 
-
 	}
-	
+
 	[CBN]
-	private static object ReadArguments(string[] args)
+	private static async Task<object> ReadArguments(string[] args)
 	{
 		if (args == null || !args.Any()) {
 			return null;
@@ -121,56 +127,87 @@ public static class Program
 #endif
 		Trace.WriteLine($">> {args.QuickJoin()}");
 
-		IEnumerator<string> argEnumerator = args.GetEnumerator().Cast<string>();
+		var argEnum = args.GetEnumerator().Cast<string>();
 
-		AdbDevice device = AdbDevice.First;
+		Console.WriteLine($"{_device.ToString().AddColor(Color.Aquamarine)}");
 
-		Console.WriteLine($"{device.ToString().AddColor(Color.Aquamarine)}");
-
-		while (argEnumerator.MoveNext()) {
-			string cmd = argEnumerator.Current;
+		while (argEnum.MoveNext()) {
+			string current = argEnum.Current;
 
 
-			switch (cmd) {
+			switch (current) {
 				case APP_SENDTO:
-					HandleOption(argEnumerator, AppIntegration.HandleSendToMenu);
+					HandleOption(argEnum, AppIntegration.HandleSendToMenu);
 					break;
 				case APP_CTX:
-					HandleOption(argEnumerator, AppIntegration.HandleContextMenu);
+					HandleOption(argEnum, AppIntegration.HandleContextMenu);
 					break;
 				case PUSH_ALL:
 					var localFiles = args.Skip(1).ToArray();
 
-					return device.PushAll(localFiles);
+					return _device.PushAll(localFiles);
 				case PULL_ALL:
 					// args = args.Skip(1).ToArray();
 
-					string remFolder  = argEnumerator.MoveAndGet();
+					string remFolder  = argEnum.MoveAndGet();
 					string destFolder = Environment.CurrentDirectory;
 
-					if (argEnumerator.MoveNext()) {
-						destFolder = argEnumerator.Current;
+					if (argEnum.MoveNext()) {
+						destFolder = argEnum.Current;
 					}
 
-					return device.PullAll(remFolder, destFolder);
+					return _device.PullAll(remFolder, destFolder);
 				case FSIZE:
-					string file = argEnumerator.MoveAndGet();
+					string file = argEnum.MoveAndGet();
 
-					argEnumerator.MoveNext();
-					return device.GetFileSize(file);
+					argEnum.MoveNext();
+					return _device.GetFileSize(file);
 				case DSIZE:
-					string folder = argEnumerator.MoveAndGet();
+					string folder = argEnum.MoveAndGet();
 
-					argEnumerator.MoveNext();
-					return device.GetFolderSize(folder);
+					argEnum.MoveNext();
+					return _device.GetFolderSize(folder);
 				case PUSH_FOLDER:
-					string dir  = argEnumerator.MoveAndGet();
-					string rdir = argEnumerator.MoveAndGet();
+					string dir  = argEnum.MoveAndGet();
+					string rdir = argEnum.MoveAndGet();
 
-					argEnumerator.MoveNext();
-					device.PushFolder(dir, rdir);
+					argEnum.MoveNext();
+					return _device.PushFolder(dir, rdir);
 					break;
+				case "/push":
+					string localSrcFile = argEnum.MoveAndGet();
+					string remoteDest   = argEnum.MoveAndGet();
 
+					argEnum.MoveNext();
+
+
+					var async = _device.PushAsync(localSrcFile, remoteDest);
+
+					ThreadPool.QueueUserWorkItem((c) =>
+					{
+						while (!async.IsCompleted) {
+							/*var s=_device.GetFileSize(Path.Combine(remoteDest, Path.GetFileName(localSrcFile))
+							                        .Replace('\\', '/'));*/
+							// Console.Write($"\r{s}");
+							if (async.IsCompleted)
+							{
+								break;
+							}
+							for (int i = 0; i <= 3; i++) {
+								Console.Write($"\r{new string('.', i)}");
+
+								if (async.IsCompleted) {
+									break;
+								}
+								// Thread.Sleep(TimeSpan.FromSeconds(i)/3);
+								Thread.Sleep(i*100);
+
+
+							}
+						}
+					});
+					return await @async;
+					break;
 				default:
 					break;
 			}
