@@ -1,48 +1,60 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Text;
+using Andro.App;
 using Andro.Utilities;
 using JetBrains.Annotations;
+using Kantan.Utilities;
 
 #pragma warning disable IDE0079
 
 
-#nullable enable
+#nullable disable
 namespace Andro.Android;
 
-public enum CommandScope
+public enum AdbCommandScope
 {
 	/// <summary>
-	/// <see cref="AdbCommand.ADB"/>
+	/// <see cref="AdbCommands.ADB"/>
 	/// </summary>
 	Adb,
 
 	/// <summary>
-	/// <see cref="AdbCommand.ADB_SHELL"/>
+	/// <see cref="AdbCommands.ADB_SHELL"/>
 	/// </summary>
 	AdbShell
 }
 
-public readonly struct AdbCommand :IDisposable
+public class AdbCommand : IDisposable
 {
 	public string Command { get; }
 
-	public CommandScope Scope { get; }
+	public AdbCommandScope Scope { get; }
 
 	public string FullCommand { get; }
 
-	public AdbCommand(string command) : this(CommandScope.Adb, command) { }
+	public bool IsBuilt => Process != null;
 
-	[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
-	public AdbCommand(string command, string? str = null, params object[] args)
-		: this(CommandScope.Adb, command, str, args) { }
+	public Process Process { get; internal set; }
 
-	[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
-	public AdbCommand(CommandScope scope, string command, string? str = null, params object[] args)
+	public string[] StandardOutput { get; internal set; }
+
+	public string[] StandardError { get; internal set; }
+
+	public AdbCommand(string command) : this(AdbCommandScope.Adb, command) { }
+
+	[SFM(AppIntegration.STRING_FORMAT_ARG)]
+	public AdbCommand(string command, [CBN] string str = null, params object[] args)
+		: this(AdbCommandScope.Adb, command, str, args) { }
+
+	[SFM(AppIntegration.STRING_FORMAT_ARG)]
+	public AdbCommand(AdbCommandScope scope, string command, [CBN] string str = null, params object[] args)
 	{
-		Command = command;
-		Scope   = scope;
-
+		Command        = command;
+		Scope          = scope;
+		Process        = new Process() { };
+		StandardError  = null;
+		StandardOutput = null;
 
 		//
 
@@ -52,83 +64,70 @@ public readonly struct AdbCommand :IDisposable
 
 		if (str != null) {
 
-			sb.Append(' ');
-
-			sb.AppendFormat(str, args);
+			sb.Append(' ')
+			  .AppendFormat(str, args);
 		}
 
 		var cmdStr = sb.ToString();
 
 		//
-		var strScope = CommandScopeToString(scope);
-		FullCommand = $"{strScope} {cmdStr}";
-	}
-
-	private static string CommandScopeToString(CommandScope scope)
-	{
-		return scope switch
+		var strScope = scope switch
 		{
-			CommandScope.Adb      => ADB,
-			CommandScope.AdbShell => ADB_SHELL,
+			AdbCommandScope.Adb      => AdbCommands.ADB,
+			AdbCommandScope.AdbShell => AdbCommands.ADB_SHELL,
 
 			_ => throw new ArgumentOutOfRangeException(nameof(scope))
 		};
+
+		FullCommand = $"{strScope} {cmdStr}";
 	}
-
-	public const string ADB = "adb";
-
-	public const string ADB_SHELL = "adb shell";
-
-	public const string TCPIP = "5555";
-
 
 	public override string ToString()
 	{
 		var sb = new StringBuilder();
 
-		sb.AppendFormat("({0}): {1}", Scope, FullCommand);
+		sb.Append($"({Scope}): {FullCommand}");
 
 		return sb.ToString();
 	}
 
 	public void Dispose()
 	{
-		
+		Trace.WriteLine($"Dispose {FullCommand}");
+		Process.WaitForExit();
+
+		Process        = null;
+		StandardError  = null;
+		StandardOutput = null;
+		GC.SuppressFinalize(this);
 	}
 
-	public AdbCommandResult Run()
+	[CanBeNull]
+	internal Predicate<AdbCommand> SuccessPredicate { get; set; }
+
+	public bool? Success => SuccessPredicate?.Invoke(this);
+
+	public void Start()
 	{
-		var op = new AdbCommandResult(this);
+		Trace.WriteLine($"Start {FullCommand}");
 
-		op.Start();
+		Process.Start();
 
-		return op;
+		StandardOutput = Process.StandardOutput.ReadAllLines();
+		StandardError  = Process.StandardError.ReadAllLines();
 	}
 
-	public Process RunShell()
+	[MURV]
+	public AdbCommand Build(bool start = true)
 	{
-		var proc = Novus.OS.Command.Shell(FullCommand);
+		Process = Novus.OS.Command.Shell(FullCommand);
 
-		return proc;
+		if (start) {
+			// Process.Start();
+			Start();
+		}
+
+
+		return this;
 	}
-
-	public static AdbCommand cmd_ls(string s) => new(CommandScope.AdbShell, "ls", $"-p \"{s}\" | grep -v /");
-
-	public static AdbCommand cmd_remove(string remoteFile) => new(CommandScope.AdbShell, "rm", $"-f \"{remoteFile}\"");
-
-	public static AdbCommand cmd_wc(string remoteFile) => new(CommandScope.AdbShell, "wc", $"\"{remoteFile}\"");
-
-	public static AdbCommand cmd_pull(string remoteFile, string destFileName)
-		=> new("pull", $"\"{remoteFile}\" \"{destFileName}\"");
-
-	public static AdbCommand cmd_devices() => new("devices");
-
-	public static AdbCommand cmd_usb() => new("usb");
-
-	public static AdbCommand cmd_tcpip() => new("tcpip");
-
-	public static AdbCommand cmd_push(string localSrcFile, string remoteDestFolder)
-		=> new("push", $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
-
-	public static AdbCommand cmd_disconnect(string otherDevice) => new(CommandScope.Adb, $"-s {otherDevice} disconnect");
 }

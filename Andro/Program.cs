@@ -5,12 +5,13 @@ using System.Drawing;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Andro.Android;
-using Andro.Diagnostics;
+using Andro.App;
 using Andro.Properties;
 using Andro.Utilities;
 using JetBrains.Annotations;
@@ -39,15 +40,17 @@ namespace Andro;
  */
 public static class Program
 {
-	public const  string PUSH_ALL    = "/push-all";
-	private const string FSIZE       = "/fsize";
-	private const string PUSH_FOLDER = "/push-folder";
+	public const string PULL_ALL    = "/pull-all";
+	public const string PUSH_ALL    = "/push-all";
+	public const string FSIZE       = "/fsize";
+	public const string PUSH_FOLDER = "/push-folder";
+	public const string DSIZE = "/dsize";
 
-	private const string APP_SENDTO = "/sendto";
-	private const string APP_CTX    = "/ctx";
+	public const string APP_SENDTO = "/sendto";
+	public const string APP_CTX    = "/ctx";
 
-	private const string OP_ADD = "add";
-	private const string OP_RM  = "rm";
+	public const string OP_ADD = "add";
+	public const string OP_RM  = "rm";
 
 
 	public static void Main(string[] args)
@@ -55,33 +58,69 @@ public static class Program
 #if TEST
 		if (!args.Any()) {
 			args = new[] { APP_SENDTO, OP_ADD, APP_CTX, OP_ADD };
+			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat", @"C:\users\deci\downloads" };
+			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat" };
+
 		}
 #endif
-
+		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 		/*
 		 * Setup
 		 */
 
 		Console.Title = Resources.Name;
-
+		
 		/*
 		 *
 		 */
 
 
-		var data = ReadFromArguments(args);
+		object data = ReadArguments(args);
 
-		Console.WriteLine($">> {data}".AddColor(Color.PaleGreen));
+		switch (data) {
+			case null:
+			{
+				string input;
 
-		if (data is true) {
-			ConsoleManager.WaitForInput();
+				while ((input = Console.ReadLine()) != null) {
+					if (input == "exit") {
+						break;
+					}
+
+					var rg  = input.Split(' ');
+					var obj = ReadArguments(rg);
+					Console.WriteLine(obj);
+				}
+
+				return;
+			}
+			// Console.WriteLine($">> {data}".AddColor(Color.PaleGreen));
+			case AdbCommand[] commands:
+			{
+				foreach (AdbCommand adbCommand in commands) {
+					Console.WriteLine(adbCommand);
+				}
+
+				break;
+			}
 		}
+
+		ConsoleManager.WaitForInput();
 
 
 	}
 
-	[CanBeNull]
-	private static object ReadFromArguments(string[] args)
+	public static T MoveAndGet<T>(this IEnumerator<T> t)
+	{
+		if (t.MoveNext()) {
+			return t.Current;
+		}
+
+		throw new Exception();
+	}
+
+	[CBN]
+	private static object ReadArguments(string[] args)
 	{
 		if (args == null || !args.Any()) {
 			return null;
@@ -91,18 +130,17 @@ public static class Program
 #endif
 		Trace.WriteLine($">> {args.QuickJoin()}");
 
-		var argEnumerator = args.GetEnumerator().Cast<string>();
+		IEnumerator<string> argEnumerator = args.GetEnumerator().Cast<string>();
 
-		var device = Device.First;
+		AdbDevice device = AdbDevice.First;
 
 		Console.WriteLine($"{device.ToString().AddColor(Color.Aquamarine)}");
 
 		while (argEnumerator.MoveNext()) {
-			string argValue = argEnumerator.Current;
+			string cmd = argEnumerator.Current;
 
-			// todo: structure
 
-			switch (argValue) {
+			switch (cmd) {
 				case APP_SENDTO:
 					HandleOption(argEnumerator, AppIntegration.HandleSendToMenu);
 					break;
@@ -110,25 +148,38 @@ public static class Program
 					HandleOption(argEnumerator, AppIntegration.HandleContextMenu);
 					break;
 				case PUSH_ALL:
-					args = args.Skip(1).ToArray();
-					device.PushAll(args);
-					return true;
+					var localFiles = args.Skip(1).ToArray();
+
+					return device.PushAll(localFiles);
+				case PULL_ALL:
+					// args = args.Skip(1).ToArray();
+
+					string remFolder  = argEnumerator.MoveAndGet();
+					string destFolder = Environment.CurrentDirectory;
+
+					if (argEnumerator.MoveNext()) {
+						destFolder = argEnumerator.Current;
+					}
+
+					return device.PullAll(remFolder, destFolder);
 				case FSIZE:
-					argEnumerator.MoveNext();
-					var file = argEnumerator.Current;
+					string file = argEnumerator.MoveAndGet();
 
 					argEnumerator.MoveNext();
 					return device.GetFileSize(file);
-				case PUSH_FOLDER:
-					argEnumerator.MoveNext();
-					var dir = argEnumerator.Current;
+				case DSIZE:
+					string folder = argEnumerator.MoveAndGet();
 
 					argEnumerator.MoveNext();
-					var rdir = argEnumerator.Current;
+					return device.GetFolderSize(folder);
+				case PUSH_FOLDER:
+					string dir  = argEnumerator.MoveAndGet();
+					string rdir = argEnumerator.MoveAndGet();
 
 					argEnumerator.MoveNext();
 					device.PushFolder(dir, rdir);
 					break;
+
 				default:
 					break;
 			}
@@ -140,7 +191,7 @@ public static class Program
 	private static void HandleOption(IEnumerator<string> argEnumerator, Action<bool> f)
 	{
 		argEnumerator.MoveNext();
-		var op = argEnumerator.Current;
+		string op = argEnumerator.Current;
 
 		switch (op) {
 			case OP_ADD:
