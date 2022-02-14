@@ -28,69 +28,71 @@ public static class AppIntegration
 	 */
 
 
-	public static string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
+	public static  string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
 
-	public static void Remove()
+	public static void HandleCtx(bool b)
 	{
-		var shell = Registry.CurrentUser.OpenSubKey(REG_SHELL);
+		if (b) {
+			RegistryKey shell    = null;
+			RegistryKey main     = null;
+			RegistryKey mainCmd  = null;
+			RegistryKey first    = null;
+			RegistryKey firstCmd = null;
 
-		if (shell != null) {
-			shell.Close();
-			Registry.CurrentUser.DeleteSubKeyTree(REG_SHELL);
+
+			string fullPath = ExeLocation;
+
+			//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
+
+			try
+			{
+
+				shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
+				shell?.SetValue("MUIVerb", Resources.Name);
+				shell?.SetValue("Icon", $"\"{fullPath}\"");
+				shell?.SetValue("subcommands", string.Empty);
+
+
+				main = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN);
+				main?.SetValue(null, "Main action");
+				main?.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
+
+
+				mainCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN_CMD);
+				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
+
+
+				first = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST);
+				first?.SetValue(null, "sdcard/");
+
+
+				firstCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST_CMD);
+				firstCmd?.SetValue(null, $"\"{fullPath}\" push \"%1\" sdcard/");
+
+			}
+			catch (Exception ex)
+			{
+				ConsoleManager.Write($"{ex.Message}");
+			}
+			finally
+			{
+				shell?.Close();
+				main?.Close();
+				mainCmd?.Close();
+				first?.Close();
+				firstCmd?.Close();
+			}
+
 		}
-	}
+		else {
+			var shell = Registry.CurrentUser.OpenSubKey(REG_SHELL);
 
-	public static bool Add()
-	{
-		RegistryKey shell    = null;
-		RegistryKey main     = null;
-		RegistryKey mainCmd  = null;
-		RegistryKey first    = null;
-		RegistryKey firstCmd = null;
-
-
-		string fullPath = ExeLocation;
-
-		//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
-
-		try {
-
-			shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
-			shell?.SetValue("MUIVerb", Resources.Name);
-			shell?.SetValue("Icon", $"\"{fullPath}\"");
-			shell?.SetValue("subcommands", string.Empty);
-
-
-			main = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN);
-			main?.SetValue(null, "Main action");
-			main?.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
-
-
-			mainCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN_CMD);
-			mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
-
-
-			first = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST);
-			first?.SetValue(null, "sdcard/");
-
-
-			firstCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST_CMD);
-			firstCmd?.SetValue(null, $"\"{fullPath}\" push \"%1\" sdcard/");
-
+			if (shell != null)
+			{
+				shell.Close();
+				Registry.CurrentUser.DeleteSubKeyTree(REG_SHELL);
+			}
 		}
-		catch (Exception ex) {
-			ConsoleManager.Write($"{ex.Message}");
-			return false;
-		}
-		finally {
-			shell?.Close();
-			main?.Close();
-			mainCmd?.Close();
-			first?.Close();
-			firstCmd?.Close();
-		}
-
-		return true;
 	}
 
 	internal const string STRING_FORMAT_ARG = "str";

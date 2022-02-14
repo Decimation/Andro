@@ -1,4 +1,5 @@
-﻿#nullable enable
+﻿using static Andro.Android.AdbCommand.Commands;
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,8 +13,7 @@ using JetBrains.Annotations;
 using Novus;
 using Novus.OS.Win32;
 using Kantan.Diagnostics;
-using static Andro.Android.AllCommands;
-using static Andro.Android.CommandResult;
+using static Andro.Android.AdbCommandResult;
 
 // ReSharper disable InconsistentNaming
 
@@ -92,7 +92,7 @@ public class Device
 	{
 		get
 		{
-			using var proc = new CommandMessage(CMD_DEVICES).Run();
+			using var proc = new AdbCommand(AdbCommand.Commands.CMD_DEVICES).Run();
 
 
 			// Skip first line
@@ -113,8 +113,8 @@ public class Device
 
 		var packet = mode switch
 		{
-			ConnectionMode.USB   => new CommandMessage(CMD_USB),
-			ConnectionMode.TCPIP => new CommandMessage(CMD_TCPIP, CommandMessage.TCPIP),
+			ConnectionMode.USB   => new AdbCommand(AdbCommand.Commands.CMD_USB),
+			ConnectionMode.TCPIP => new AdbCommand(AdbCommand.Commands.CMD_TCPIP, AdbCommand.TCPIP),
 			_                    => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
 		};
 
@@ -143,7 +143,7 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_WC, $"\"{remoteFile}\"");
 
 		using var cmd = packet.Run();
 
@@ -171,7 +171,7 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new CommandMessage(CommandScope.AdbShell, CMD_WC, $"\"{remoteFile}\"");
+		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_WC, $"\"{remoteFile}\"");
 
 		using var cmd = packet.Run();
 
@@ -184,7 +184,7 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new CommandMessage(CommandScope.AdbShell, CMD_RM, $"-f \"{remoteFile}\"");
+		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_RM, $"-f \"{remoteFile}\"");
 
 		using var cmd = packet.Run();
 	}
@@ -197,7 +197,7 @@ public class Device
 
 		var destFileName = Path.Combine(localDestFolder, fileName);
 
-		var packet = new CommandMessage(CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
+		var packet = new AdbCommand(AdbCommand.Commands.CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
 
 		using var cmd = packet.Run();
 
@@ -208,7 +208,7 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new CommandMessage(CommandScope.AdbShell, CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
+		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
 
 		using var cmd = packet.Run();
 
@@ -234,17 +234,17 @@ public class Device
 		foreach (string otherDevice in otherDevices) {
 			Debug.WriteLine($"Disconnecting {otherDevice}");
 
-			var packet = new CommandMessage(CommandScope.Adb, $"-s {otherDevice} disconnect");
+			var packet = new AdbCommand(CommandScope.Adb, $"-s {otherDevice} disconnect");
 
 			using var cmd = packet.Run();
 		}
 	}
 
-	public CommandResult Push(string localSrcFile, string remoteDestFolder)
+	public AdbCommandResult Push(string localSrcFile, string remoteDestFolder)
 	{
 		EnsureDevice();
 
-		var packet = new CommandMessage(CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
+		var packet = new AdbCommand(AdbCommand.Commands.CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
 
 		var cmd = packet.Run();
 
@@ -252,13 +252,13 @@ public class Device
 	}
 
 
-	public CommandResult[] PushAll(string localSrcFolder, string remoteDestFolder)
+	public AdbCommandResult[] PushAll(string localSrcFolder, string remoteDestFolder)
 	{
 		EnsureDevice();
 
 		var files = Directory.GetFiles(localSrcFolder);
 
-		var rg = new List<CommandResult>();
+		var rg = new List<AdbCommandResult>();
 
 		foreach (string file in files) {
 			var fi = new FileInfo(file);

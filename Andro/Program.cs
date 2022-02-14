@@ -33,9 +33,12 @@ namespace Andro;
  */
 public static class Program
 {
-	public const  string ADB_PUSH   = "/adb-push";
-	public const  string ADD_SENDTO = "add-sendto";
-	public const  string RM_SENDTO  = "rm-sendto";
+	public const string ADB_PUSH   = "/adb-push";
+	public const string ADD_SENDTO = "/sendto";
+	public const string ADD_CTX    = "/ctx";
+
+	private const string ADD = "add";
+	private const string RM  = "rm";
 
 	public static string AppExe;
 
@@ -55,17 +58,65 @@ public static class Program
 			}
 #endif
 
-		Console.WriteLine($"{args?.QuickJoin()}");
+		/*
+		 * Setup
+		 */
 
-		if (args != null && args.Any()) {
-			switch (args.First()) {
+		Console.Title = Resources.Name;
+
+		/*
+		 *
+		 */
+
+		var data = ReadFromArguments(args);
+
+		Trace.WriteLine($">> {data}");
+
+		if (data is true) {
+			ConsoleManager.WaitForInput();
+
+		}
+	}
+
+	[CanBeNull]
+	private static object ReadFromArguments(string[] args)
+	{
+
+		// Debug.WriteLine(args.QuickJoin(Strings.Constants.SPACE.ToString()));
+
+		if (args == null) {
+			return null;
+
+		}
+
+		if (!args.Any()) {
+
+			return null;
+		}
+
+		Trace.WriteLine($"{args.QuickJoin()}");
+
+		var argQueue = new Queue<string>(args);
+
+		using var argEnumerator = argQueue.GetEnumerator();
+
+		var d = Device.First;
+
+		Console.WriteLine(d);
+
+		while (argEnumerator.MoveNext()) {
+			string argValue = argEnumerator.Current;
+			string op       = null;
+			// todo: structure
+
+			switch (argValue) {
 				case ADD_SENDTO:
-					AppIntegration.HandleSendTo(true);
-					break;
-				case RM_SENDTO:
-					AppIntegration.HandleSendTo(false);
+					argEnumerator.MoveNext();
+					op = argEnumerator.Current;
 
+					HandleOption(op, argEnumerator, AppIntegration.HandleSendTo);
 					break;
+
 				case ADB_PUSH:
 					args = args.Skip(1).ToArray();
 
@@ -85,73 +136,7 @@ public static class Program
 
 						// Console.WriteLine(rx.StandardOutput.ReadLine());
 					});
-
-					break;
-			}
-		}
-
-
-		/*
-		 * Setup
-		 */
-
-		Console.Title = Resources.Name;
-
-
-		/*
-		 *
-		 */
-
-		var data = ReadFromArguments(args);
-
-		Console.WriteLine(">> {0}", data);
-
-
-		ConsoleManager.WaitForInput();
-	}
-
-	[CanBeNull]
-	private static object ReadFromArguments(string[] args)
-	{
-		//var args = Environment.GetCommandLineArgs()
-		//                      .Skip(1)
-		//                      .ToArray();
-
-		//args = args.Skip(1).ToArray();
-
-		Debug.WriteLine(args.QuickJoin(Strings.Constants.SPACE.ToString()));
-
-
-		if (!args.Any()) {
-			return null;
-		}
-
-		var argQueue = new Queue<string>(args);
-
-		using var argEnumerator = argQueue.GetEnumerator();
-
-		var d = Device.First;
-
-		Console.WriteLine(d);
-
-		while (argEnumerator.MoveNext()) {
-			string argValue = argEnumerator.Current;
-
-			// todo: structure
-
-			switch (argValue) {
-				case "push":
-					argEnumerator.MoveNext();
-					var f = argEnumerator.Current;
-
-					argEnumerator.MoveNext();
-					var df = argEnumerator.Current;
-
-					argEnumerator.MoveNext();
-
-					d.Push(f, df);
-
-					break;
+					return true;
 				case "fsize":
 					argEnumerator.MoveNext();
 					var file = argEnumerator.Current;
@@ -160,20 +145,11 @@ public static class Program
 
 					return d.GetFileSize(file);
 
-				case "ctx":
+				case ADD_CTX:
 					argEnumerator.MoveNext();
-					var op = argEnumerator.Current;
+					op = argEnumerator.Current;
 
-					if (op == "add") {
-						AppIntegration.Add();
-					}
-
-					if (op == "rm") {
-						AppIntegration.Remove();
-
-					}
-
-					argEnumerator.MoveNext();
+					HandleOption(op, argEnumerator, AppIntegration.HandleCtx);
 					break;
 				case "pushall":
 					argEnumerator.MoveNext();
@@ -193,5 +169,19 @@ public static class Program
 		}
 
 		return null;
+	}
+
+	private static void HandleOption(string op, Queue<string>.Enumerator argEnumerator, Action<bool> f)
+	{
+		switch (op) {
+			case ADD:
+				f(true);
+				break;
+			case RM:
+				f(false);
+				break;
+		}
+
+		argEnumerator.MoveNext();
 	}
 }

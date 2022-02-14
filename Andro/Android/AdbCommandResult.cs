@@ -8,7 +8,7 @@ using Kantan.Utilities;
 
 namespace Andro.Android;
 
-public class CommandResult : IDisposable
+public struct AdbCommandResult : IDisposable
 {
 	public Process Process { get; }
 
@@ -16,17 +16,19 @@ public class CommandResult : IDisposable
 
 	public string[] StandardError { get; private set; }
 
-	public CommandMessage CommandMessage { get; }
+	public AdbCommand AdbCommand { get; }
 
-	public CommandResult(CommandMessage cmd)
+	public AdbCommandResult(AdbCommand cmd)
 	{
 		Process        = cmd.RunShell();
-		CommandMessage = cmd;
+		AdbCommand     = cmd;
+		StandardError  = null;
+		StandardOutput = null;
 	}
 
 	public void Start()
 	{
-		Trace.WriteLine($"Start {CommandMessage.FullCommand}");
+		Trace.WriteLine($"Start {AdbCommand.FullCommand}");
 		Process.Start();
 
 		StandardOutput = Process.StandardOutput.ReadAllLines();
@@ -37,7 +39,7 @@ public class CommandResult : IDisposable
 	public void Dispose()
 	{
 
-		Trace.WriteLine($"Dispose {CommandMessage.FullCommand}");
+		Trace.WriteLine($"Dispose {AdbCommand.FullCommand}");
 		Process.WaitForExit();
 		GC.SuppressFinalize(this);
 	}
@@ -47,7 +49,7 @@ public class CommandResult : IDisposable
 	{
 		var sb = new StringBuilder();
 
-		sb.AppendFormat($"{CommandMessage.FullCommand}");
+		sb.AppendFormat($"{AdbCommand.FullCommand}");
 
 		sb.AppendRangeSafe(StandardOutput, "Standard output:\n");
 		sb.AppendRangeSafe(StandardError, "Standard error:\n");

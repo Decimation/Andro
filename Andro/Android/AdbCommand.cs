@@ -13,18 +13,19 @@ namespace Andro.Android;
 public enum CommandScope
 {
 	/// <summary>
-	/// <see cref="CommandMessage.ADB"/>
+	/// <see cref="AdbCommand.ADB"/>
 	/// </summary>
 	Adb,
 
 	/// <summary>
-	/// <see cref="CommandMessage.ADB_SHELL"/>
+	/// <see cref="AdbCommand.ADB_SHELL"/>
 	/// </summary>
 	AdbShell
 }
 
-public readonly struct CommandMessage
+public readonly struct AdbCommand
 {
+	
 	public string Command { get; }
 
 	public CommandScope Scope { get;  }
@@ -32,16 +33,16 @@ public readonly struct CommandMessage
 	public string FullCommand { get;  }
 
 
-	public CommandMessage(string command) : this(CommandScope.Adb, command) { }
+	public AdbCommand(string command) : this(CommandScope.Adb, command) { }
 
 
 	[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
-	public CommandMessage(string command, string? str = null, params object[] args)
+	public AdbCommand(string command, string? str = null, params object[] args)
 		: this(CommandScope.Adb, command, str, args) { }
 
 
 	[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
-	public CommandMessage(CommandScope scope, string command, string? str = null, params object[] args)
+	public AdbCommand(CommandScope scope, string command, string? str = null, params object[] args)
 	{
 		Command = command;
 		Scope   = scope;
@@ -67,9 +68,9 @@ public readonly struct CommandMessage
 		FullCommand = $"{strScope} {cmdStr}";
 	}
 
-	public static implicit operator CommandMessage(string command)
+	public static implicit operator AdbCommand(string command)
 	{
-		var p = new CommandMessage(command);
+		var p = new AdbCommand(command);
 
 		return p;
 	}
@@ -100,9 +101,9 @@ public readonly struct CommandMessage
 		return sb.ToString();
 	}
 
-	public CommandResult Run()
+	public AdbCommandResult Run()
 	{
-		var op = new CommandResult(this);
+		var op = new AdbCommandResult(this);
 
 		op.Start();
 
@@ -114,5 +115,17 @@ public readonly struct CommandMessage
 		var proc = Novus.OS.Command.Shell(FullCommand);
 
 		return proc;
+	}
+
+	public static class Commands
+	{
+		public const string CMD_USB     = "usb";
+		public const string CMD_DEVICES = "devices";
+		public const string CMD_TCPIP   = "tcpip";
+		public const string CMD_PUSH    = "push";
+		public const string CMD_PULL    = "pull";
+		public const string CMD_RM      = "rm";
+		public const string CMD_WC      = "wc";
+		public const string CMD_LS      = "ls";
 	}
 }
