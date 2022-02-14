@@ -1,4 +1,10 @@
-﻿using static Andro.Android.AdbCommand.Commands;
+﻿using System.Collections.Concurrent;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
+using Kantan.Cli;
+using Kantan.Numeric;
+using Kantan.Text;
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -9,11 +15,8 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using Andro.Diagnostics;
-using JetBrains.Annotations;
-using Novus;
 using Novus.OS.Win32;
 using Kantan.Diagnostics;
-using static Andro.Android.AdbCommandResult;
 
 // ReSharper disable InconsistentNaming
 
@@ -92,7 +95,7 @@ public class Device
 	{
 		get
 		{
-			using var proc = new AdbCommand(AdbCommand.Commands.CMD_DEVICES).Run();
+			using var proc = AdbCommand.cmd_devices().Run();
 
 
 			// Skip first line
@@ -113,9 +116,10 @@ public class Device
 
 		var packet = mode switch
 		{
-			ConnectionMode.USB   => new AdbCommand(AdbCommand.Commands.CMD_USB),
-			ConnectionMode.TCPIP => new AdbCommand(AdbCommand.Commands.CMD_TCPIP, AdbCommand.TCPIP),
-			_                    => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+			ConnectionMode.USB   => AdbCommand.cmd_usb(),
+			ConnectionMode.TCPIP => AdbCommand.cmd_tcpip(),
+
+			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
 		};
 
 		packet.Run();
@@ -131,7 +135,6 @@ public class Device
 
 		var devices = AvailableDeviceNames;
 
-
 		var deviceName = devices.First();
 
 		var device = new Device(deviceName, mode);
@@ -143,11 +146,12 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_WC, $"\"{remoteFile}\"");
+		var packet = AdbCommand.cmd_wc(remoteFile);
 
 		using var cmd = packet.Run();
 
-		if (cmd.StandardError != null && cmd.StandardError.Any(s => s.Contains("No such file"))) {
+		if (cmd.StandardError != null &&
+		    cmd.StandardError.Any(s => s.Contains("No such file"))) {
 			return Native.INVALID;
 		}
 
@@ -171,50 +175,49 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_WC, $"\"{remoteFile}\"");
-
-		using var cmd = packet.Run();
-
-		var fs = GetFileSize(remoteFile);
-
-		return fs != Native.INVALID;
-	}
-
-	public void Remove(string remoteFile)
-	{
-		EnsureDevice();
-
-		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_RM, $"-f \"{remoteFile}\"");
-
-		using var cmd = packet.Run();
-	}
-
-	public string Pull(string remoteFile, string localDestFolder)
-	{
-		EnsureDevice();
-
-		var fileName = Path.GetFileName(remoteFile);
-
-		var destFileName = Path.Combine(localDestFolder, fileName);
-
-		var packet = new AdbCommand(AdbCommand.Commands.CMD_PULL, $"\"{remoteFile}\" \"{destFileName}\"");
-
-		using var cmd = packet.Run();
-
-		return destFileName;
-	}
-
-	public string[] GetFiles(string remoteFolder)
-	{
-		EnsureDevice();
-
-		var packet = new AdbCommand(CommandScope.AdbShell, AdbCommand.Commands.CMD_LS, $"-p \"{remoteFolder}\" | grep -v /");
+		var packet = AdbCommand.cmd_wc(remoteFile);
 
 		using var cmd = packet.Run();
 
 		var output = cmd.StandardOutput;
+		var fs     = GetFileSize(remoteFile);
 
-		return output;
+		return fs != Native.INVALID;
+	}
+
+	public AdbCommandResult Remove(string remoteFile)
+	{
+		EnsureDevice();
+
+		var packet = AdbCommand.cmd_remove(remoteFile);
+
+		var cmd = packet.Run();
+		return cmd;
+	}
+
+	public AdbCommandResult Pull(string remoteFile, string localDestFolder)
+	{
+		EnsureDevice();
+
+		var fileName     = Path.GetFileName(remoteFile);
+		var destFileName = Path.Combine(localDestFolder, fileName);
+
+		var packet = AdbCommand.cmd_pull(remoteFile, destFileName);
+
+		var cmd = packet.Run();
+
+		return cmd;
+	}
+
+	public AdbCommandResult GetFiles(string remoteFolder)
+	{
+		EnsureDevice();
+
+		var packet = AdbCommand.cmd_ls(remoteFolder);
+
+		var cmd = packet.Run();
+
+		return cmd;
 	}
 
 	/// <summary>
@@ -234,9 +237,10 @@ public class Device
 		foreach (string otherDevice in otherDevices) {
 			Debug.WriteLine($"Disconnecting {otherDevice}");
 
-			var packet = new AdbCommand(CommandScope.Adb, $"-s {otherDevice} disconnect");
+			var packet = AdbCommand.cmd_disconnect(otherDevice);
 
 			using var cmd = packet.Run();
+
 		}
 	}
 
@@ -244,7 +248,7 @@ public class Device
 	{
 		EnsureDevice();
 
-		var packet = new AdbCommand(AdbCommand.Commands.CMD_PUSH, $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
+		var packet = AdbCommand.cmd_push(localSrcFile, remoteDestFolder);
 
 		var cmd = packet.Run();
 
@@ -252,24 +256,13 @@ public class Device
 	}
 
 
-	public AdbCommandResult[] PushAll(string localSrcFolder, string remoteDestFolder)
+	public AdbCommandResult[] PushFolder(string localSrcFolder, string remoteDestFolder)
 	{
 		EnsureDevice();
 
 		var files = Directory.GetFiles(localSrcFolder);
 
-		var rg = new List<AdbCommandResult>();
-
-		foreach (string file in files) {
-			var fi = new FileInfo(file);
-
-			Trace.WriteLine($"Push {fi.Name} -> {remoteDestFolder}");
-			var p = Push(file, remoteDestFolder);
-			//Console.ReadLine();
-			rg.Add(p);
-		}
-
-		return rg.ToArray();
+		return PushAll(files, remoteDestFolder);
 	}
 
 	public override string ToString()
@@ -280,5 +273,42 @@ public class Device
 		  .AppendFormat($"Mode: {Mode}\n");
 
 		return sb.ToString();
+	}
+
+	public AdbCommandResult[] PushAll(string[] args2, string destFolder = "sdcard/")
+	{
+		var rg = new ConcurrentBag<AdbCommandResult>();
+
+		int l    = args2.Length;
+		var sw   = Stopwatch.StartNew();
+
+		var args = args2.Select(x => new FileInfo(x)).ToArray();
+		var cb   = args.Sum(x => x.Length);
+		var cb2  = 0L;
+
+		var plr = Parallel.For(0, l, (i, pls) =>
+		{
+			// Console.WriteLine($"{args[i]} -> {destFolder}");
+			// Console.Clear();
+
+			var s = args[i];
+
+			var cr = Push($"{s}", destFolder);
+
+			rg.Add(cr);
+
+			// Console.WriteLine(cr.StandardOutput.QuickJoin("\n"));
+
+			/*if (pls.ShouldExitCurrentIteration) {
+				pls.Break();
+			}*/
+			cb2 += s.Length;
+			Console.Write($"\r {rg.Count}/{l} | {sw.Elapsed.TotalSeconds:F3} sec | {MathHelper.GetByteUnit(cb2)} / {MathHelper.GetByteUnit(cb)}");
+			// Console.WriteLine(s);
+
+		});
+		Console.WriteLine();
+		sw.Stop();
+		return rg.ToArray();
 	}
 }

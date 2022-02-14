@@ -12,6 +12,15 @@ namespace Andro.Utilities;
 
 public static class AppIntegration
 {
+	static AppIntegration()
+	{
+		var mainModule = Process.GetCurrentProcess().MainModule;
+		Debug.Assert(mainModule != null);
+		AppExe = mainModule.FileName;
+	}
+
+	public static readonly string AppExe;
+
 	private const string REG_SHELL = "SOFTWARE\\Classes\\*\\shell\\Andro";
 
 	private const string REG_SHELL_MAIN     = "SOFTWARE\\Classes\\*\\shell\\Andro\\shell\\Main";
@@ -28,9 +37,9 @@ public static class AppIntegration
 	 */
 
 
-	public static  string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
+	public static string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
 
-	public static void HandleCtx(bool b)
+	public static void HandleContextMenu(bool b)
 	{
 		if (b) {
 			RegistryKey shell    = null;
@@ -44,8 +53,7 @@ public static class AppIntegration
 
 			//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
 
-			try
-			{
+			try {
 
 				shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
 				shell?.SetValue("MUIVerb", Resources.Name);
@@ -70,12 +78,10 @@ public static class AppIntegration
 				firstCmd?.SetValue(null, $"\"{fullPath}\" push \"%1\" sdcard/");
 
 			}
-			catch (Exception ex)
-			{
+			catch (Exception ex) {
 				ConsoleManager.Write($"{ex.Message}");
 			}
-			finally
-			{
+			finally {
 				shell?.Close();
 				main?.Close();
 				mainCmd?.Close();
@@ -87,8 +93,7 @@ public static class AppIntegration
 		else {
 			var shell = Registry.CurrentUser.OpenSubKey(REG_SHELL);
 
-			if (shell != null)
-			{
+			if (shell != null) {
 				shell.Close();
 				Registry.CurrentUser.DeleteSubKeyTree(REG_SHELL);
 			}
@@ -99,13 +104,13 @@ public static class AppIntegration
 
 	internal const string DEBUG_COND = "DEBUG";
 
-	public static void HandleSendTo(bool b)
+	public static void HandleSendToMenu(bool b)
 	{
 
 		var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
 		                          @"AppData\Roaming\Microsoft\Windows\SendTo");
 
-		Debug.WriteLine($"{Program.AppExe}");
+		Debug.WriteLine($"{AppIntegration.AppExe}");
 
 		switch (b) {
 			case true:
@@ -115,8 +120,8 @@ public static class AppIntegration
 
 				// setup shortcut information
 				// link.SetDescription("My Description");
-				link.SetPath(Program.AppExe);
-				link.SetArguments(Program.ADB_PUSH);
+				link.SetPath(AppIntegration.AppExe);
+				link.SetArguments(Program.PUSH_ALL);
 
 				// save it
 				var file = (IPersistFile) link;

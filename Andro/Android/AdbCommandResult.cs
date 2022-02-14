@@ -41,6 +41,7 @@ public struct AdbCommandResult : IDisposable
 
 		Trace.WriteLine($"Dispose {AdbCommand.FullCommand}");
 		Process.WaitForExit();
+
 		GC.SuppressFinalize(this);
 	}
 

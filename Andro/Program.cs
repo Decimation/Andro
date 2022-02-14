@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using Andro.Android;
@@ -12,12 +15,15 @@ using Andro.Properties;
 using Andro.Utilities;
 using JetBrains.Annotations;
 using Kantan.Cli;
+using Kantan.Collections;
 using Kantan.Text;
 using Microsoft.VisualBasic;
 using Novus;
 using Novus.OS;
 using FileSystem = Novus.OS.FileSystem;
 using Strings = Kantan.Text.Strings;
+
+// ReSharper disable AssignNullToNotNullAttribute
 
 // ReSharper disable SuspiciousTypeConversion.Global
 
@@ -33,29 +39,23 @@ namespace Andro;
  */
 public static class Program
 {
-	public const string ADB_PUSH   = "/adb-push";
-	public const string ADD_SENDTO = "/sendto";
-	public const string ADD_CTX    = "/ctx";
+	public const  string PUSH_ALL    = "/push-all";
+	private const string FSIZE       = "/fsize";
+	private const string PUSH_FOLDER = "/push-folder";
 
-	private const string ADD = "add";
-	private const string RM  = "rm";
+	private const string APP_SENDTO = "/sendto";
+	private const string APP_CTX    = "/ctx";
 
-	public static string AppExe;
+	private const string OP_ADD = "add";
+	private const string OP_RM  = "rm";
 
-	static Program()
-	{
-		var mainModule = Process.GetCurrentProcess().MainModule;
-		Debug.Assert(mainModule != null);
-		AppExe = mainModule.FileName;
-
-	}
 
 	public static void Main(string[] args)
 	{
 #if TEST
-			if (!args.Any()) {
-				args = new[] {"ctx", "rm"};
-			}
+		if (!args.Any()) {
+			args = new[] { APP_SENDTO, OP_ADD, APP_CTX, OP_ADD };
+		}
 #endif
 
 		/*
@@ -68,90 +68,58 @@ public static class Program
 		 *
 		 */
 
+
 		var data = ReadFromArguments(args);
 
-		Trace.WriteLine($">> {data}");
+		Console.WriteLine($">> {data}".AddColor(Color.PaleGreen));
 
 		if (data is true) {
 			ConsoleManager.WaitForInput();
-
 		}
+
+
 	}
 
 	[CanBeNull]
 	private static object ReadFromArguments(string[] args)
 	{
-
-		// Debug.WriteLine(args.QuickJoin(Strings.Constants.SPACE.ToString()));
-
-		if (args == null) {
-			return null;
-
-		}
-
-		if (!args.Any()) {
-
+		if (args == null || !args.Any()) {
 			return null;
 		}
+#if DEBUG
+		Console.WriteLine($">> {args.QuickJoin()}");
+#endif
+		Trace.WriteLine($">> {args.QuickJoin()}");
 
-		Trace.WriteLine($"{args.QuickJoin()}");
+		var argEnumerator = args.GetEnumerator().Cast<string>();
 
-		var argQueue = new Queue<string>(args);
+		var device = Device.First;
 
-		using var argEnumerator = argQueue.GetEnumerator();
-
-		var d = Device.First;
-
-		Console.WriteLine(d);
+		Console.WriteLine($"{device.ToString().AddColor(Color.Aquamarine)}");
 
 		while (argEnumerator.MoveNext()) {
 			string argValue = argEnumerator.Current;
-			string op       = null;
+
 			// todo: structure
 
 			switch (argValue) {
-				case ADD_SENDTO:
-					argEnumerator.MoveNext();
-					op = argEnumerator.Current;
-
-					HandleOption(op, argEnumerator, AppIntegration.HandleSendTo);
+				case APP_SENDTO:
+					HandleOption(argEnumerator, AppIntegration.HandleSendToMenu);
 					break;
-
-				case ADB_PUSH:
+				case APP_CTX:
+					HandleOption(argEnumerator, AppIntegration.HandleContextMenu);
+					break;
+				case PUSH_ALL:
 					args = args.Skip(1).ToArray();
-
-					var plr = Parallel.For(0, args.Length, (i, pls) =>
-					{
-						// var rx=Command.Run("adb", $"push {s} sdcard/");
-						// rx.Start();
-
-						var device = Device.First;
-
-						var destFolder = "sdcard/";
-
-						var cr = device.Push($"{args[i]}", destFolder);
-
-
-						Console.WriteLine(cr.StandardOutput.QuickJoin("\n"));
-
-						// Console.WriteLine(rx.StandardOutput.ReadLine());
-					});
+					device.PushAll(args);
 					return true;
-				case "fsize":
+				case FSIZE:
 					argEnumerator.MoveNext();
 					var file = argEnumerator.Current;
 
 					argEnumerator.MoveNext();
-
-					return d.GetFileSize(file);
-
-				case ADD_CTX:
-					argEnumerator.MoveNext();
-					op = argEnumerator.Current;
-
-					HandleOption(op, argEnumerator, AppIntegration.HandleCtx);
-					break;
-				case "pushall":
+					return device.GetFileSize(file);
+				case PUSH_FOLDER:
 					argEnumerator.MoveNext();
 					var dir = argEnumerator.Current;
 
@@ -159,9 +127,7 @@ public static class Program
 					var rdir = argEnumerator.Current;
 
 					argEnumerator.MoveNext();
-
-					d.PushAll(dir, rdir);
-
+					device.PushFolder(dir, rdir);
 					break;
 				default:
 					break;
@@ -171,17 +137,20 @@ public static class Program
 		return null;
 	}
 
-	private static void HandleOption(string op, Queue<string>.Enumerator argEnumerator, Action<bool> f)
+	private static void HandleOption(IEnumerator<string> argEnumerator, Action<bool> f)
 	{
+		argEnumerator.MoveNext();
+		var op = argEnumerator.Current;
+
 		switch (op) {
-			case ADD:
+			case OP_ADD:
 				f(true);
 				break;
-			case RM:
+			case OP_RM:
 				f(false);
 				break;
 		}
 
-		argEnumerator.MoveNext();
+		// argEnumerator.MoveNext();
 	}
 }

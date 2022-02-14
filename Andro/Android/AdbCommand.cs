@@ -23,23 +23,19 @@ public enum CommandScope
 	AdbShell
 }
 
-public readonly struct AdbCommand
+public readonly struct AdbCommand :IDisposable
 {
-	
 	public string Command { get; }
 
-	public CommandScope Scope { get;  }
+	public CommandScope Scope { get; }
 
-	public string FullCommand { get;  }
-
+	public string FullCommand { get; }
 
 	public AdbCommand(string command) : this(CommandScope.Adb, command) { }
-
 
 	[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
 	public AdbCommand(string command, string? str = null, params object[] args)
 		: this(CommandScope.Adb, command, str, args) { }
-
 
 	[StringFormatMethod(AppIntegration.STRING_FORMAT_ARG)]
 	public AdbCommand(CommandScope scope, string command, string? str = null, params object[] args)
@@ -68,20 +64,14 @@ public readonly struct AdbCommand
 		FullCommand = $"{strScope} {cmdStr}";
 	}
 
-	public static implicit operator AdbCommand(string command)
-	{
-		var p = new AdbCommand(command);
-
-		return p;
-	}
-
 	private static string CommandScopeToString(CommandScope scope)
 	{
 		return scope switch
 		{
 			CommandScope.Adb      => ADB,
 			CommandScope.AdbShell => ADB_SHELL,
-			_                     => throw new ArgumentOutOfRangeException(nameof(scope))
+
+			_ => throw new ArgumentOutOfRangeException(nameof(scope))
 		};
 	}
 
@@ -101,6 +91,11 @@ public readonly struct AdbCommand
 		return sb.ToString();
 	}
 
+	public void Dispose()
+	{
+		
+	}
+
 	public AdbCommandResult Run()
 	{
 		var op = new AdbCommandResult(this);
@@ -117,15 +112,23 @@ public readonly struct AdbCommand
 		return proc;
 	}
 
-	public static class Commands
-	{
-		public const string CMD_USB     = "usb";
-		public const string CMD_DEVICES = "devices";
-		public const string CMD_TCPIP   = "tcpip";
-		public const string CMD_PUSH    = "push";
-		public const string CMD_PULL    = "pull";
-		public const string CMD_RM      = "rm";
-		public const string CMD_WC      = "wc";
-		public const string CMD_LS      = "ls";
-	}
+	public static AdbCommand cmd_ls(string s) => new(CommandScope.AdbShell, "ls", $"-p \"{s}\" | grep -v /");
+
+	public static AdbCommand cmd_remove(string remoteFile) => new(CommandScope.AdbShell, "rm", $"-f \"{remoteFile}\"");
+
+	public static AdbCommand cmd_wc(string remoteFile) => new(CommandScope.AdbShell, "wc", $"\"{remoteFile}\"");
+
+	public static AdbCommand cmd_pull(string remoteFile, string destFileName)
+		=> new("pull", $"\"{remoteFile}\" \"{destFileName}\"");
+
+	public static AdbCommand cmd_devices() => new("devices");
+
+	public static AdbCommand cmd_usb() => new("usb");
+
+	public static AdbCommand cmd_tcpip() => new("tcpip");
+
+	public static AdbCommand cmd_push(string localSrcFile, string remoteDestFolder)
+		=> new("push", $"\"{localSrcFile}\" \"{remoteDestFolder}\"");
+
+	public static AdbCommand cmd_disconnect(string otherDevice) => new(CommandScope.Adb, $"-s {otherDevice} disconnect");
 }
