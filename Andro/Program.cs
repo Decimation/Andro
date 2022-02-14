@@ -42,9 +42,9 @@ public static class Program
 {
 	public const string PULL_ALL    = "/pull-all";
 	public const string PUSH_ALL    = "/push-all";
-	public const string FSIZE       = "/fsize";
 	public const string PUSH_FOLDER = "/push-folder";
-	public const string DSIZE = "/dsize";
+	public const string FSIZE       = "/fsize";
+	public const string DSIZE       = "/dsize";
 
 	public const string APP_SENDTO = "/sendto";
 	public const string APP_CTX    = "/ctx";
@@ -109,16 +109,7 @@ public static class Program
 
 
 	}
-
-	public static T MoveAndGet<T>(this IEnumerator<T> t)
-	{
-		if (t.MoveNext()) {
-			return t.Current;
-		}
-
-		throw new Exception();
-	}
-
+	
 	[CBN]
 	private static object ReadArguments(string[] args)
 	{
@@ -190,8 +181,7 @@ public static class Program
 
 	private static void HandleOption(IEnumerator<string> argEnumerator, Action<bool> f)
 	{
-		argEnumerator.MoveNext();
-		string op = argEnumerator.Current;
+		string op = argEnumerator.MoveAndGet();
 
 		switch (op) {
 			case OP_ADD:

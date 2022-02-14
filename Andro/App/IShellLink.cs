@@ -1,6 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
+// ReSharper disable IdentifierTypo
+
 namespace Andro.App;
 
 [ComImport]
@@ -32,3 +34,7 @@ internal interface IShellLink
 	void Resolve(IntPtr hwnd, int fFlags);
 	void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
 }
+
+[ComImport]
+[Guid("00021401-0000-0000-C000-000000000046")]
+internal class ShellLink { }

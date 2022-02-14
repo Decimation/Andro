@@ -52,7 +52,7 @@ public enum AdbConnectionMode
 
 public class AdbDevice
 {
-	public        string Name { get; }
+	public string Name { get; }
 
 	public AdbConnectionMode Mode { get; }
 
@@ -167,7 +167,8 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var cmd   = GetFiles(f);
+		using var cmd = GetFiles(f);
+
 		var files = cmd.StandardOutput;
 		var cb    = 0;
 
@@ -193,7 +194,7 @@ public class AdbDevice
 		return fs != Native.INVALID;
 	}
 
-	public AdbCommand Remove(string remoteFile)
+	public AdbCommand RemoveFile(string remoteFile)
 	{
 		EnsureDevice();
 
@@ -224,43 +225,55 @@ public class AdbDevice
 	/// <summary>
 	/// Ensures only <see cref="Name"/> is connected
 	/// </summary>
-	public bool EnsureDevice()
+	public bool IsConnected()
 	{
 		if (!_ensure) {
 			Debug.WriteLine($" skip check");
 			return true;
 		}
 
-		return EnsureDevice(Name);
+		return IsConnected(Name);
+	}
+
+	public void EnsureDevice()
+	{
+		Require.Assert<AdbException>(IsConnected());
 	}
 
 	/// <summary>
 	/// Ensures only <paramref name="name"/> is connected
 	/// </summary>
-	public static bool EnsureDevice(string name) => AvailableDeviceNames.Contains(name);
+	public static bool IsConnected(string name) => AvailableDeviceNames.Contains(name);
 
-	public AdbCommand[] RunIOParallel(Func<string, string, AdbCommand> transfer, string[] files, string dest)
+	public AdbCommand[] RunIOParallel(Func<string, string, AdbCommand> transfer, string[] files, string dest,
+	                                  Func<string, long> gs = null)
 	{
-		var len  = files.Length;
+		// var cb2 = GetFolderSize(dest);
+		var cb1 = 0L;
+		var len = files.Length;
 		var bag = new ConcurrentBag<AdbCommand>();
-		var sw = Stopwatch.StartNew();
-		_ensure = false;
-
+		var sw  = Stopwatch.StartNew();
+		_ensure =   false;
+		gs      ??= s => 0;
 		var err = 0;
 
 		var plr = Parallel.For(0, len, (i, pls) =>
 		{
 			var file = files[i];
-
-			var cmd = transfer(file, dest);
+			var cmd  = transfer(file, dest);
 
 			bag.Add(cmd);
 
 			if (cmd.Success.HasValue && !cmd.Success.Value) {
 				err++;
 			}
+			else {
+				cb1 += gs(file);
+			}
 
-			Console.Write($"\r {bag.Count}/{len} | {err} | {sw.Elapsed.TotalSeconds:F3} sec");
+			Console.Write($"\r {bag.Count}/{len} | {err} | " +
+			              $"{MathHelper.GetByteUnit(cb1)} | " +
+			              $"{sw.Elapsed.TotalSeconds:F3} sec ");
 		});
 
 		Console.WriteLine();
@@ -308,12 +321,16 @@ public class AdbDevice
 
 	public AdbCommand[] PullAll(string remFolder, string destFolder)
 	{
+		EnsureDevice();
 		using var result = GetFiles(remFolder);
-		return RunIOParallel(Pull, result.StandardOutput, destFolder);
+
+		return RunIOParallel(Pull, result.StandardOutput, destFolder,
+		                     s => new FileInfo(Path.Combine(destFolder, Path.GetFileName(s))).Length);
 	}
 
 	public AdbCommand[] PushAll(string[] files, string destFolder = SDCARD)
 	{
+		EnsureDevice();
 		return RunIOParallel(Push, files, destFolder);
 	}
 

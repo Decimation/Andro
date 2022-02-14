@@ -10,18 +10,16 @@ namespace Andro.App;
 
 public static class AppIntegration
 {
-	static AppIntegration()
-	{
-	}
+	static AppIntegration() { }
 
 
-	private const string REG_SHELL = "SOFTWARE\\Classes\\*\\shell\\Andro";
+	private const string REG_SHELL = @"SOFTWARE\Classes\*\shell\Andro";
 
-	private const string REG_SHELL_MAIN     = "SOFTWARE\\Classes\\*\\shell\\Andro\\shell\\Main";
-	private const string REG_SHELL_MAIN_CMD = "SOFTWARE\\Classes\\*\\shell\\Andro\\shell\\Main\\command";
+	private const string REG_SHELL_MAIN     = @"SOFTWARE\Classes\*\shell\Andro\shell\Main";
+	private const string REG_SHELL_MAIN_CMD = @"SOFTWARE\Classes\*\shell\Andro\shell\Main\command";
 
-	private const string REG_SHELL_FIRST     = "SOFTWARE\\Classes\\*\\shell\\Andro\\shell\\First";
-	private const string REG_SHELL_FIRST_CMD = "SOFTWARE\\Classes\\*\\shell\\Andro\\shell\\First\\command";
+	private const string REG_SHELL_FIRST     = @"SOFTWARE\Classes\*\shell\Andro\shell\First";
+	private const string REG_SHELL_FIRST_CMD = @"SOFTWARE\Classes\*\shell\Andro\shell\First\command";
 
 
 	/*
@@ -54,15 +52,20 @@ public static class AppIntegration
 			try {
 
 				shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
-				shell?.SetValue("MUIVerb", Resources.Name);
-				shell?.SetValue("Icon", $"\"{fullPath}\"");
-				shell?.SetValue("subcommands", string.Empty);
+
+				if (shell != null) {
+					shell.SetValue("MUIVerb", Resources.Name);
+					shell.SetValue("Icon", $"\"{fullPath}\"");
+					shell.SetValue("subcommands", string.Empty);
+				}
 
 
 				main = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN);
-				main?.SetValue(null, "Main action");
-				main?.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
 
+				if (main != null) {
+					main.SetValue(null, "Main action");
+					main.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
+				}
 
 				mainCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN_CMD);
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");

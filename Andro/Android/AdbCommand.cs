@@ -5,6 +5,7 @@ using Andro.App;
 using Andro.Utilities;
 using JetBrains.Annotations;
 using Kantan.Utilities;
+using Novus.OS;
 
 #pragma warning disable IDE0079
 
@@ -27,11 +28,11 @@ public enum AdbCommandScope
 
 public class AdbCommand : IDisposable
 {
-	public string Command { get; }
+	public string Value { get; }
 
 	public AdbCommandScope Scope { get; }
 
-	public string FullCommand { get; }
+	public string BuiltCommand { get; }
 
 	public bool IsBuilt => Process != null;
 
@@ -41,7 +42,6 @@ public class AdbCommand : IDisposable
 
 	public string[] StandardError { get; internal set; }
 
-	public AdbCommand(string command) : this(AdbCommandScope.Adb, command) { }
 
 	[SFM(AppIntegration.STRING_FORMAT_ARG)]
 	public AdbCommand(string command, [CBN] string str = null, params object[] args)
@@ -50,7 +50,7 @@ public class AdbCommand : IDisposable
 	[SFM(AppIntegration.STRING_FORMAT_ARG)]
 	public AdbCommand(AdbCommandScope scope, string command, [CBN] string str = null, params object[] args)
 	{
-		Command        = command;
+		Value          = command;
 		Scope          = scope;
 		Process        = new Process() { };
 		StandardError  = null;
@@ -60,10 +60,9 @@ public class AdbCommand : IDisposable
 
 		var sb = new StringBuilder();
 
-		sb.Append(Command);
+		sb.Append(Value);
 
 		if (str != null) {
-
 			sb.Append(' ')
 			  .AppendFormat(str, args);
 		}
@@ -79,21 +78,23 @@ public class AdbCommand : IDisposable
 			_ => throw new ArgumentOutOfRangeException(nameof(scope))
 		};
 
-		FullCommand = $"{strScope} {cmdStr}";
+		BuiltCommand = $"{strScope} {cmdStr}";
 	}
 
 	public override string ToString()
 	{
-		var sb = new StringBuilder();
-
-		sb.Append($"({Scope}): {FullCommand}");
-
-		return sb.ToString();
+		return $"{nameof(Scope)}: {Scope}, " +
+		       $"{nameof(BuiltCommand)}: {BuiltCommand}, " +
+		       $"{nameof(IsBuilt)}: {IsBuilt}, " +
+		       $"{nameof(StandardOutput)}: {StandardOutput}, " +
+		       $"{nameof(StandardError)}: {StandardError}, " +
+		       $"{nameof(Success)}: {Success}";
 	}
 
 	public void Dispose()
 	{
-		Trace.WriteLine($"Dispose {FullCommand}");
+		Trace.WriteLine($"Dispose {BuiltCommand}");
+
 		Process.WaitForExit();
 
 		Process        = null;
@@ -109,7 +110,7 @@ public class AdbCommand : IDisposable
 
 	public void Start()
 	{
-		Trace.WriteLine($"Start {FullCommand}");
+		Trace.WriteLine($"Start {BuiltCommand}");
 
 		Process.Start();
 
@@ -120,7 +121,7 @@ public class AdbCommand : IDisposable
 	[MURV]
 	public AdbCommand Build(bool start = true)
 	{
-		Process = Novus.OS.Command.Shell(FullCommand);
+		Process = Command.Shell(BuiltCommand);
 
 		if (start) {
 			// Process.Start();
