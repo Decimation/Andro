@@ -4,6 +4,7 @@ using System.Text;
 using Andro.App;
 using Andro.Utilities;
 using JetBrains.Annotations;
+using Kantan.Text;
 using Kantan.Utilities;
 using Novus.OS;
 
@@ -83,12 +84,7 @@ public class AdbCommand : IDisposable
 
 	public override string ToString()
 	{
-		return $"{nameof(Scope)}: {Scope}, " +
-		       $"{nameof(BuiltCommand)}: {BuiltCommand}, " +
-		       $"{nameof(IsBuilt)}: {IsBuilt}, " +
-		       $"{nameof(StandardOutput)}: {StandardOutput}, " +
-		       $"{nameof(StandardError)}: {StandardError}, " +
-		       $"{nameof(Success)}: {Success}";
+		return $"{StandardOutput.QuickJoin("\n")} | {Success}";
 	}
 
 	public void Dispose()

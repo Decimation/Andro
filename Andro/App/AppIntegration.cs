@@ -35,9 +35,11 @@ public static class AppIntegration
 
 	internal const string DEBUG_COND = "DEBUG";
 
-	public static void HandleContextMenu(bool b)
+	public static bool? HandleContextMenu(bool? b = null)
 	{
-		if (b) {
+		b ??= Registry.CurrentUser.OpenSubKey(REG_SHELL) == null;
+
+		if (b.Value) {
 			RegistryKey shell    = null;
 			RegistryKey main     = null;
 			RegistryKey mainCmd  = null;
@@ -76,7 +78,8 @@ public static class AppIntegration
 
 
 				firstCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST_CMD);
-				firstCmd?.SetValue(null, $"\"{fullPath}\" push \"%1\" sdcard/");
+				firstCmd?.SetValue(null, $"\"{fullPath}\" {Program.PUSH} \"%1\" sdcard/");
+				return true;
 
 			}
 			catch (Exception ex) {
@@ -97,11 +100,15 @@ public static class AppIntegration
 			if (shell != null) {
 				shell.Close();
 				Registry.CurrentUser.DeleteSubKeyTree(REG_SHELL);
+				return false;
 			}
+
 		}
+
+		return null;
 	}
 
-	public static void HandleSendToMenu(bool b)
+	public static bool? HandleSendToMenu(bool? b= null)
 	{
 
 		var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -109,6 +116,8 @@ public static class AppIntegration
 
 		Debug.WriteLine($"{AppIntegration.ExeLocation}");
 
+		var sendToFile = Path.Combine(sendTo, Resources.NameShortcut);
+		b ??= !File.Exists(sendToFile);
 		switch (b) {
 			case true:
 				// string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -123,13 +132,18 @@ public static class AppIntegration
 				// save it
 				var file = (IPersistFile) link;
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-				file.Save(Path.Combine(sendTo, Resources.NameShortcut), false);
+				file.Save(sendToFile, false);
+				return true;
 				break;
 			case false:
-				var pp = Path.Combine(sendTo, Resources.NameShortcut);
+				var pp = sendToFile;
 				File.Delete(pp);
+				return false;
+
 				break;
 
 		}
+
+		return null;
 	}
 }

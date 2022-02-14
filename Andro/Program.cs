@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.IO.Pipes;
@@ -47,12 +48,16 @@ public static class Program
 	public const string PUSH_FOLDER = "/push-folder";
 	public const string FSIZE       = "/fsize";
 	public const string DSIZE       = "/dsize";
+	public const string PUSH        = "/push";
 
 	public const string APP_SENDTO = "/sendto";
 	public const string APP_CTX    = "/ctx";
 
 	public const string OP_ADD = "add";
 	public const string OP_RM  = "rm";
+
+	private const char   CTRL_Z = '\x1A';
+	private const string EXIT   = "exit";
 
 
 	public static async Task Main(string[] args)
@@ -80,40 +85,45 @@ public static class Program
 
 		_device = AdbDevice.First;
 
-		object data = await ReadArguments(args);
+		Console.WriteLine($">> {_device.ToString().AddColor(Color.Aquamarine)}");
 
+		object data;
+		string input;
+		data = await ReadArguments(args)!;
+		Print(data);
+
+		while ((input = Console.ReadLine()) != null) {
+			input = input.Trim();
+
+
+			var inputArgs = input.Split(' ');
+			data = await ReadArguments(inputArgs)!;
+			Print(data);
+			continue;
+		}
+
+
+		// ConsoleManager.WaitForInput();
+	}
+
+	private static void Print(object data)
+	{
 		switch (data) {
-			case null:
-			{
-				string input;
-
-				while ((input = Console.ReadLine()) != null) {
-					if (input == "exit") {
-						break;
-					}
-
-					var rg  = input.Split(' ');
-					var obj = ReadArguments(rg);
-					Console.WriteLine(obj);
-				}
-
-				break;
-			}
 			case AdbCommand c:
-				Console.WriteLine(c);
+				Trace.WriteLine(c);
 				break;
 			case AdbCommand[] commands:
 			{
 				foreach (AdbCommand cmd in commands) {
-					Console.WriteLine(cmd);
+					Trace.WriteLine(cmd);
 				}
 
 				break;
 			}
+			default:
+				Console.WriteLine(data);
+				break;
 		}
-
-		ConsoleManager.WaitForInput();
-
 	}
 
 	[CBN]
@@ -123,25 +133,23 @@ public static class Program
 			return null;
 		}
 #if DEBUG
-		Console.WriteLine($">> {args.QuickJoin()}");
+		Console.WriteLine($">> {args.QuickJoin()}".AddColor(Color.Beige));
 #endif
 		Trace.WriteLine($">> {args.QuickJoin()}");
 
 		var argEnum = args.GetEnumerator().Cast<string>();
-
-		Console.WriteLine($"{_device.ToString().AddColor(Color.Aquamarine)}");
 
 		while (argEnum.MoveNext()) {
 			string current = argEnum.Current;
 
 
 			switch (current) {
+				case EXIT:
+					goto default;
 				case APP_SENDTO:
-					HandleOption(argEnum, AppIntegration.HandleSendToMenu);
-					break;
+					return HandleOption(argEnum, AppIntegration.HandleSendToMenu);
 				case APP_CTX:
-					HandleOption(argEnum, AppIntegration.HandleContextMenu);
-					break;
+					return HandleOption(argEnum, AppIntegration.HandleContextMenu);
 				case PUSH_ALL:
 					var localFiles = args.Skip(1).ToArray();
 
@@ -173,42 +181,37 @@ public static class Program
 
 					argEnum.MoveNext();
 					return _device.PushFolder(dir, rdir);
-					break;
-				case "/push":
+				case PUSH:
 					string localSrcFile = argEnum.MoveAndGet();
 					string remoteDest   = argEnum.MoveAndGet();
 
 					argEnum.MoveNext();
 
-
-					var async = _device.PushAsync(localSrcFile, remoteDest);
+					var pushTask = _device.PushAsync(localSrcFile, remoteDest);
 
 					ThreadPool.QueueUserWorkItem((c) =>
 					{
-						while (!async.IsCompleted) {
-							/*var s=_device.GetFileSize(Path.Combine(remoteDest, Path.GetFileName(localSrcFile))
-							                        .Replace('\\', '/'));*/
-							// Console.Write($"\r{s}");
-							if (async.IsCompleted)
-							{
+						do {
+							if (pushTask.IsCompleted) {
 								break;
 							}
+
 							for (int i = 0; i <= 3; i++) {
 								Console.Write($"\r{new string('.', i)}");
 
-								if (async.IsCompleted) {
+								if (pushTask.IsCompleted) {
 									break;
 								}
-								// Thread.Sleep(TimeSpan.FromSeconds(i)/3);
-								Thread.Sleep(i*100);
 
-
+								Thread.Sleep(i * 100);
 							}
-						}
+						} while (!pushTask.IsCompleted);
 					});
-					return await @async;
-					break;
+					return await pushTask;
+
+				case { } when current.Contains(CTRL_Z):
 				default:
+
 					break;
 			}
 		}
@@ -216,18 +219,23 @@ public static class Program
 		return null;
 	}
 
-	private static void HandleOption(IEnumerator<string> argEnumerator, Action<bool> f)
+	private static bool? HandleOption(IEnumerator<string> argEnumerator, Func<bool?, bool?> f)
 	{
 		string op = argEnumerator.MoveAndGet();
 
 		switch (op) {
+			case null:
+				return f(null);
+
 			case OP_ADD:
-				f(true);
+				return f(true);
 				break;
 			case OP_RM:
-				f(false);
+				return f(false);
 				break;
 		}
+
+		return null;
 
 		// argEnumerator.MoveNext();
 	}

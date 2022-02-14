@@ -215,12 +215,18 @@ public class AdbDevice
 		var cmd = packet.Build();
 
 		if (abs) {
+
 			cmd.StandardOutput = cmd.StandardOutput
-			                        .Select(x => Path.Combine(remoteFolder, x).Replace('\\', '/'))
+			                        .Select(x => GetPath(x, remoteFolder))
 			                        .ToArray();
 		}
 
 		return cmd;
+	}
+
+	public static string GetPath(string file, string rootFolder)
+	{
+		return Path.Combine(rootFolder, file).Replace('\\', '/');
 	}
 
 	public Process Shell(DataReceivedEventHandler outputHandler = null, DataReceivedEventHandler errorHandler = null)
@@ -254,15 +260,18 @@ public class AdbDevice
 	public static bool IsConnected(string name) => AvailableDeviceNames.Contains(name);
 
 	public AdbCommand[] RunIOParallel(Func<string, string, AdbCommand> transfer, string[] files, string dest,
-	                                  Func<string, long> gs = null)
+	                                  Func<string, long> getSize = null)
 	{
 		// var cb2 = GetFolderSize(dest);
 		var cb1 = 0L;
 		var len = files.Length;
 		var bag = new ConcurrentBag<AdbCommand>();
 		var sw  = Stopwatch.StartNew();
-		_ensure =   false;
-		gs      ??= s => 0;
+
+		_ensure = false;
+
+		getSize ??= _ => 0;
+
 		var err = 0;
 
 		var plr = Parallel.For(0, len, (i, pls) =>
@@ -276,7 +285,7 @@ public class AdbDevice
 				err++;
 			}
 			else {
-				cb1 += gs(file);
+				cb1 += getSize(file);
 			}
 
 			Console.Write($"\r {bag.Count}/{len} | {err} | " +
@@ -310,7 +319,7 @@ public class AdbDevice
 	public AdbCommand Push(string localSrcFile, string remoteDestFolder)
 	{
 		EnsureDevice();
-		
+
 		var packet = AdbCommands.push(localSrcFile, remoteDestFolder);
 
 		var cmd = packet.Build();
@@ -320,7 +329,7 @@ public class AdbDevice
 
 	public Task<AdbCommand> PushAsync(string localSrcFile, string remoteDestFolder)
 	{
-		return  Task.Run(() => Push(localSrcFile, remoteDestFolder));
+		return Task.Run(() => Push(localSrcFile, remoteDestFolder));
 	}
 
 	public AdbCommand[] PushFolder(string localSrcFolder, string remoteDestFolder)
@@ -335,10 +344,14 @@ public class AdbDevice
 	public AdbCommand[] PullAll(string remFolder, string destFolder)
 	{
 		EnsureDevice();
+
 		using var result = GetFiles(remFolder);
 
-		return RunIOParallel(Pull, result.StandardOutput, destFolder,
-		                     s => new FileInfo(Path.Combine(destFolder, Path.GetFileName(s))).Length);
+		return RunIOParallel(Pull, result.StandardOutput, destFolder, s =>
+		{
+			var fileInfo = new FileInfo(Path.Combine(destFolder, Path.GetFileName(s)));
+			return fileInfo.Length;
+		});
 	}
 
 	public AdbCommand[] PushAll(string[] files, string destFolder = SDCARD)
