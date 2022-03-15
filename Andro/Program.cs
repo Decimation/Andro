@@ -71,6 +71,13 @@ public static class Program
 
 		}
 #endif
+#if DEBUG
+		foreach (var v in Process.GetProcessesByName("adb")) {
+			v.Kill(true);
+			Console.WriteLine($"Killed {v.Id}");
+		}
+
+#endif
 		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 
 		/*

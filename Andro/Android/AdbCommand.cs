@@ -90,8 +90,9 @@ public class AdbCommand : IDisposable
 
 		Process.Start();
 
-		StandardOutput = Process.StandardOutput.ReadToEnd().Trim();
-		StandardError  = Process.StandardError.ReadToEnd().Trim();
+
+		StandardOutput = Process.StandardOutput.ReadToEnd().Trim().Trim('\r').Replace("\r", String.Empty);
+		StandardError  = Process.StandardError.ReadToEnd().Trim().Trim('\r').Replace("\r", String.Empty);
 	}
 
 	[MURV]
@@ -127,7 +128,7 @@ public class AdbCommand : IDisposable
 		return this;
 	}
 
-	public static AdbCommand wc =
+	public static readonly AdbCommand wc =
 		new(AdbDevice.ADB_SHELL, "wc \"{0}\"")
 		{
 			SuccessPredicate = cmd =>

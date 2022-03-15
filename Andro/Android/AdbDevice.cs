@@ -81,9 +81,10 @@ public class AdbDevice
 	{
 		get
 		{
-			var first = AvailableDeviceNames.FirstOrDefault();
+			var first = AvailableDeviceNames;
 
-			return first;
+
+			return first.FirstOrDefault();
 		}
 	}
 
@@ -140,7 +141,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var packet = AdbCommand.wc(remoteFile);
+		using var packet = AdbCommand.wc.Build(args:remoteFile);
 
 		using var cmd = packet.Build();
 
@@ -188,7 +189,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var packet = AdbCommand.wc(remoteFile);
+		using var packet = AdbCommand.wc.Build(args:remoteFile);
 
 		using var cmd = packet.Build();
 
@@ -212,11 +213,11 @@ public class AdbDevice
 	{
 		EnsureDevice();
 			
-		var packet = AdbCommand.find.Build(args:folder);
+		var packet = AdbCommand.find.Build(args2: new []{folder});
 
-		var cmd = packet.Build();
+		// var cmd = packet.Build();
 
-		return cmd;
+		return packet;
 	}
 
 	public static string GetPath(string file, string rootFolder)
