@@ -106,44 +106,11 @@ public class AdbDevice
 	}
 
 
-	public static AdbDevice SetConnectionMode(AdbConnectionMode mode)
-	{
-		//
-
-		var packet = mode switch
-		{
-			AdbConnectionMode.USB   => AdbCommand.usb.Build(),
-			AdbConnectionMode.TCPIP => AdbCommand.tcpip.Build(),
-
-			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
-		};
-
-
-		/*
-		 * Wait a bit for the device to connect
-		 */
-
-		Thread.Sleep(TimeSpan.FromSeconds(3));
-
-
-		//
-
-		var devices = AvailableDeviceNames;
-
-		var deviceName = devices.First();
-
-		var device = new AdbDevice(deviceName, mode);
-
-		return device;
-	}
-
 	public AdbCommand GetItems(string folder)
 	{
 		EnsureDevice();
 
 		var packet = AdbCommand.find.Build(args2: new[] { folder });
-
-		// var cmd = packet.Build();
 
 		return packet;
 	}
@@ -152,20 +119,10 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		// var cmd = AdbCommand.wc.Build(args:remoteFile);
 
-		// using var cmd = packet.Build();
+		var args = $"adb shell wc \"{remoteFile}\""; //todo
 
-		var args = $"adb shell wc \"{remoteFile}\"";
-		// var p    = Command.Shell(args);
-
-		DataReceivedEventHandler a = ((sender, eventArgs) => { });
-		DataReceivedEventHandler b = (sender, eventArgs) => { };
-
-		var p = Command.Shell(args);
-		p.StartInfo.RedirectStandardInput = true;
-		p.StartInfo.RedirectStandardError = true;
-		p.Start();
+		Process p = GetShell(args);
 		p.StandardInput.WriteLine(args);
 		p.StandardInput.Flush();
 
@@ -179,35 +136,29 @@ public class AdbDevice
 		var output = s.Split(' ');
 		var bytes  = int.Parse(output[2]);
 
-		/*if (cmd.Success.HasValue && !cmd.Success.Value) {
-			return Native.INVALID;
-		}
-
-		if (cmd.StandardOutput.Any<char>()) {
-
-			var output = Enumerable.First<string>(cmd.StandardOutput.Split(bs)).Split(' ');
-
-			// var lines  = int.Parse(output[0]);
-			// var words  = int.Parse(output[1]);
-			var bytes = int.Parse(output[2]);
-			// var file   = output[3];
-
-
-			return bytes;
-		}*/
 
 		return bytes;
+	}
+
+	public static Process GetShell(string args)
+	{
+		var p = Command.Shell(args);
+		p.StartInfo.RedirectStandardInput = true;
+		p.StartInfo.RedirectStandardError = true;
+		p.Start();
+		return p;
 	}
 
 	public int GetFolderSize(string f)
 	{
 		EnsureDevice();
 
-		var cmd = GetItems(f);
+	using	var cmd = GetItems(f);
 
 		var files = cmd.StandardOutput.Split(bs);
 		var cb    = 0;
-		var sw    = Stopwatch.StartNew();
+
+		var sw = Stopwatch.StartNew();
 
 		Parallel.For(0, files.Length, (i, plr) =>
 		{
@@ -215,7 +166,7 @@ public class AdbDevice
 
 			cb += size;
 
-			Console.Write($"{S}{cb}");
+			Console.Write($"{Strings.Constants.ClearLine}{cb}");
 		});
 
 		sw.Stop();
@@ -247,18 +198,6 @@ public class AdbDevice
 		return cmd;
 	}
 
-	public static string GetPath(string file, string rootFolder)
-	{
-		return Path.Combine(rootFolder, file).Replace('\\', '/');
-	}
-
-	public Process Shell(DataReceivedEventHandler outputHandler = null, DataReceivedEventHandler errorHandler = null)
-	{
-		Process p = Command.Run(Native.CMD_EXE, outputHandler, errorHandler);
-		p.StandardInput.WriteLine(AdbDevice.ADB_SHELL);
-		return p;
-
-	}
 
 	/// <summary>
 	/// Ensures only <see cref="Name"/> is connected
@@ -310,7 +249,7 @@ public class AdbDevice
 				cb1 += getSize(file);
 			}
 
-			Console.Write($"{S}{bag.Count}/{len} | {err} | " +
+			Console.Write($"{Strings.Constants.ClearLine}{bag.Count}/{len} | {err} | " +
 			              $"{MathHelper.GetByteUnit(cb1)} | " +
 			              $"{sw.Elapsed.TotalSeconds:F3} sec ");
 		});
@@ -397,12 +336,41 @@ public class AdbDevice
 
 	private static bool _ensure;
 
-	private static readonly string S = new string('\r', Console.BufferWidth);
-
 	static AdbDevice() { }
 
 
 	public const string ADB       = "adb";
 	public const string ADB_SHELL = "adb shell";
 	public const string TCPIP     = "5555";
+
+	public static AdbDevice SetConnectionMode(AdbConnectionMode mode)
+	{
+		//
+
+		var packet = mode switch
+		{
+			AdbConnectionMode.USB   => AdbCommand.usb.Build(),
+			AdbConnectionMode.TCPIP => AdbCommand.tcpip.Build(),
+
+			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+		};
+
+
+		/*
+		 * Wait a bit for the device to connect
+		 */
+
+		Thread.Sleep(TimeSpan.FromSeconds(3));
+
+
+		//
+
+		var devices = AvailableDeviceNames;
+
+		var deviceName = devices.First();
+
+		var device = new AdbDevice(deviceName, mode);
+
+		return device;
+	}
 }
