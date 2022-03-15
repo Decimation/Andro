@@ -110,6 +110,7 @@ public static class Program
 		// ConsoleManager.WaitForInput();
 	}
 
+
 	private static void KillAdb()
 	{
 		foreach (var v in Process.GetProcessesByName("adb")) {
@@ -122,7 +123,6 @@ public static class Program
 	{
 		switch (data) {
 #if !DEBUG
-			
 			case AdbCommand c:
 				Trace.WriteLine(c);
 				break;
@@ -161,18 +161,48 @@ public static class Program
 
 			var current = args[i];
 
-			switch (current)
-			{
+			switch (current) {
+				case "sh":
+					string input = null;
+
+					var ps = AdbDevice.GetShell(AdbDevice.ADB_SHELL);
+
+					while ((input = Console.ReadLine()) != null) {
+						input = input.Trim();
+
+						ps.StandardInput.WriteLine(input);
+						ps.StandardInput.Flush();
+						Trace.WriteLine($">>{input}");
+						string? b = null;
+
+						ps.ErrorDataReceived += (sender, eventArgs) =>
+						{
+							Console.Error.WriteLine(eventArgs.Data);
+						};
+						ps.OutputDataReceived += (sender, eventArgs) =>
+						{
+							Console.WriteLine(eventArgs.Data);
+						};
+						var a=ps.StandardOutput.ReadLine();
+						Console.WriteLine($"{a}|{b}");
+
+						if (input == "exit") {
+							break; 
+						}
+					}
+
+					Console.WriteLine("exit sh");
+					break;
 				case "gi":
 					// return _device.GetItems(args[++i..]);
 					AdbCommand readArguments = AdbCommand.find;
-					readArguments.Build(args2:args[++i..]);
+					readArguments.Build(args2: args[++i..]);
 					return readArguments;
 				case EXIT:
 					goto default;
 				case APP_SENDTO:
 
-					return HandleOption(args[++i],AppIntegration.HandleSendToMenu);
+					return HandleOption(args[++i], AppIntegration.HandleSendToMenu);
 				case APP_CTX:
 
 					return HandleOption(args[++i], AppIntegration.HandleContextMenu);
@@ -182,7 +212,7 @@ public static class Program
 
 					return _device.PushAll(localFiles);
 				case PULL_ALL:
-					
+
 
 					return _device.PullAll(args[++i], args[++i]);
 				case FSIZE:
@@ -207,19 +237,15 @@ public static class Program
 
 					ThreadPool.QueueUserWorkItem((c) =>
 					{
-						do
-						{
-							if (pushTask.IsCompleted)
-							{
+						do {
+							if (pushTask.IsCompleted) {
 								break;
 							}
 
-							for (int i = 0; i <= 3; i++)
-							{
+							for (int i = 0; i <= 3; i++) {
 								Console.Write($"\r{new string('.', i)}");
 
-								if (pushTask.IsCompleted)
-								{
+								if (pushTask.IsCompleted) {
 									break;
 								}
 

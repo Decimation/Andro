@@ -8,6 +8,7 @@ using Kantan.Numeric;
 using Kantan.Text;
 #nullable disable
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -18,6 +19,7 @@ using System.Threading;
 using Kantan.Collections;
 using Novus.OS.Win32;
 using Kantan.Diagnostics;
+using Kantan.Utilities;
 using Novus.OS;
 
 // ReSharper disable InconsistentNaming
@@ -58,6 +60,8 @@ public class AdbDevice
 
 	public AdbConnectionMode Mode { get; }
 
+	static AdbDevice() { }
+
 	public AdbDevice(string name, AdbConnectionMode mode = AdbConnectionMode.UNKNOWN)
 	{
 		Name = name;
@@ -67,13 +71,6 @@ public class AdbDevice
 		Require.Assert(AvailableDeviceNames.Contains(name));
 	}
 
-	private static AdbConnectionMode ResolveConnectionMode(string deviceName)
-	{
-		bool isIPAddr = IPAddress.TryParse(deviceName, out _);
-
-		return isIPAddr ? AdbConnectionMode.TCPIP : AdbConnectionMode.USB;
-	}
-
 	public static AdbDevice First => FirstName is { } ? new AdbDevice(FirstName) : throw new AdbException();
 
 	[CanBeNull]
@@ -81,7 +78,7 @@ public class AdbDevice
 	{
 		get
 		{
-			var first = AvailableDeviceNames;
+			string[] first = AvailableDeviceNames;
 
 
 			return first.FirstOrDefault();
@@ -92,14 +89,14 @@ public class AdbDevice
 	{
 		get
 		{
-			var proc = AdbCommand.devices.Build();
+			AdbCommand proc = AdbCommand.devices.Build();
 			proc.Start();
 			// Skip first line
 
-			var stdOut = proc.StandardOutput.Trim().Split(bs).Skip<string>(1)
-			                 .Where(s => !string.IsNullOrWhiteSpace(s))
-			                 .Select(s => s.Split('\t')[0])
-			                 .ToArray();
+			string[] stdOut = proc.StandardOutput.Trim().Split(OUT_SPLIT).Skip<string>(1)
+			                      .Where(s => !String.IsNullOrWhiteSpace(s))
+			                      .Select(s => s.Split('\t')[0])
+			                      .ToArray();
 
 			return stdOut;
 		}
@@ -110,62 +107,92 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		var packet = AdbCommand.find.Build(args2: new[] { folder });
+		AdbCommand packet = AdbCommand.find.Build(args2: new[] { folder });
 
 		return packet;
 	}
 
-	public int GetFileSize(string remoteFile)
+
+	public int GetFileSize(string remoteFile, Process p = null)
 	{
 		EnsureDevice();
 
+		string args = $"wc \"{remoteFile}\""; //todo
 
-		var args = $"adb shell wc \"{remoteFile}\""; //todo
+		p ??= GetShell($"{ADB_SHELL} {args}");
 
-		Process p = GetShell(args);
-		p.StandardInput.WriteLine(args);
-		p.StandardInput.Flush();
+		TextWriter input =
+			TextWriter.Synchronized(p.StandardInput);
 
-		var s2 = p.StandardError.ReadToEnd();
+		input.WriteLine(args);
+		input.Flush();
+		string s = null, s2 = null;
 
-		if (!string.IsNullOrWhiteSpace(s2)) {
+		// var reader  = TextReader.Synchronized(p.StandardOutput);
+		// var reader2 = TextReader.Synchronized(p.StandardError);
+		StreamReader reader = p.StandardOutput;
+		// var reader2 = p.StandardError;
+
+
+		// if (!((StreamReader) reader2).EndOfStream) { }
+		s = reader.ReadToEnd();
+
+		if (String.IsNullOrWhiteSpace(s)) return 0;
+
+		if (s.Contains("Is a directory")) {
 			return 0;
 		}
 
-		var s      = p.StandardOutput.ReadToEnd();
-		var output = s.Split(' ');
-		var bytes  = int.Parse(output[2]);
+		Debug.WriteLine($"{s}");
+		string[] output = s.Split(' ');
 
+		int bytes = Int32.Parse(output[2]);
 
 		return bytes;
+
+		// if (!((StreamReader) reader).EndOfStream) { }
+
+		// return 0;
+		/*if (!string.IsNullOrWhiteSpace(s2)) {
+			return 0;
+		}
+
+		s2 = reader2.ReadToEnd();*/
+
+
 	}
 
 	public static Process GetShell(string args)
 	{
-		var p = Command.Shell(args);
+		Process p = Command.Shell(args);
 		p.StartInfo.RedirectStandardInput = true;
 		p.StartInfo.RedirectStandardError = true;
 		p.Start();
 		return p;
 	}
 
+
 	public int GetFolderSize(string f)
 	{
 		EnsureDevice();
 
-	using	var cmd = GetItems(f);
+		using AdbCommand cmd = GetItems(f);
 
-		var files = cmd.StandardOutput.Split(bs);
-		var cb    = 0;
+		string[] files = cmd.StandardOutput.Split(OUT_SPLIT)[1..];
+		int      cb    = 0;
 
-		var sw = Stopwatch.StartNew();
+		var     sw = Stopwatch.StartNew();
+		Process ps = GetShell(ADB_SHELL);
+
+		int c = 0;
 
 		Parallel.For(0, files.Length, (i, plr) =>
 		{
-			var size = GetFileSize(files[i]);
+			// var i2   = MathHelper.Wrap(i, ps.Length);
+			int size = GetFileSize(files[i]);
 
 			cb += size;
-
+			c++;
 			Console.Write($"{Strings.Constants.ClearLine}{cb}");
 		});
 
@@ -178,11 +205,9 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var packet = AdbCommand.wc.Build(args: remoteFile);
+		using AdbCommand packet = AdbCommand.wc.Build(args: remoteFile);
 
-		// using var cmd = packet.Build();
-
-		var fs = GetFileSize(remoteFile);
+		int fs = GetFileSize(remoteFile);
 
 		return fs != Native.INVALID;
 	}
@@ -191,9 +216,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var cmd = AdbCommand.rm.Build(args: remoteFile);
-
-		// var cmd = packet.Build();
+		using AdbCommand cmd = AdbCommand.rm.Build(args: remoteFile);
 
 		return cmd;
 	}
@@ -204,9 +227,7 @@ public class AdbDevice
 	/// </summary>
 	public bool IsConnected()
 	{
-		if (!_ensure) {
-			return true;
-		}
+		if (!_ensure) return true;
 
 		return IsConnected(Name);
 	}
@@ -219,35 +240,36 @@ public class AdbDevice
 	/// <summary>
 	/// Ensures only <paramref name="name"/> is connected
 	/// </summary>
-	public static bool IsConnected(string name) => AvailableDeviceNames.Contains(name);
+	public static bool IsConnected(string name)
+	{
+		return AvailableDeviceNames.Contains(name);
+	}
 
 	public AdbCommand[] RunIOParallel(Func<string, string, AdbCommand> transfer, string[] files, string dest,
 	                                  Func<string, long> getSize = null)
 	{
-		var cb1 = 0L;
-		var len = files.Length;
-		var bag = new ConcurrentBag<AdbCommand>();
-		var sw  = Stopwatch.StartNew();
+		long cb1 = 0L;
+		int  len = files.Length;
+		var  bag = new ConcurrentBag<AdbCommand>();
+		var  sw  = Stopwatch.StartNew();
 
 		_ensure = false;
 
 		getSize ??= _ => 0;
 
-		var err = 0;
+		int err = 0;
 
-		var plr = Parallel.For(0, len, (i, pls) =>
+		ParallelLoopResult plr = Parallel.For(0, len, (i, pls) =>
 		{
-			var file = files[i];
-			var cmd  = transfer(file, dest);
+			string     file = files[i];
+			AdbCommand cmd  = transfer(file, dest);
 
 			bag.Add(cmd);
 
-			if (cmd.Success.HasValue && !cmd.Success.Value) {
+			if (cmd.Success.HasValue && !cmd.Success.Value)
 				err++;
-			}
-			else {
+			else
 				cb1 += getSize(file);
-			}
 
 			Console.Write($"{Strings.Constants.ClearLine}{bag.Count}/{len} | {err} | " +
 			              $"{MathHelper.GetByteUnit(cb1)} | " +
@@ -281,9 +303,9 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		var packet = AdbCommand.push(localSrcFile, remoteDestFolder);
+		AdbCommand packet = AdbCommand.push(localSrcFile, remoteDestFolder);
 
-		var cmd = packet.Build();
+		AdbCommand cmd = packet.Build();
 
 		return cmd;
 	}
@@ -297,7 +319,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		var files = Directory.GetFiles(localSrcFolder);
+		string[] files = Directory.GetFiles(localSrcFolder);
 
 		return PushAll(files, remoteDestFolder);
 	}
@@ -306,9 +328,9 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var result = GetItems(remFolder);
+		using AdbCommand result = GetItems(remFolder);
 
-		return RunIOParallel(Pull, result.StandardOutput.Split(bs), destFolder, s =>
+		return RunIOParallel(Pull, result.StandardOutput.Split(OUT_SPLIT), destFolder, s =>
 		{
 			var fileInfo = new FileInfo(Path.Combine(destFolder, Path.GetFileName(s)));
 			return fileInfo.Length;
@@ -332,22 +354,27 @@ public class AdbDevice
 
 	private const string SDCARD = "sdcard/";
 
-	private const char bs = '\n';
+	private const char OUT_SPLIT = '\n';
 
 	private static bool _ensure;
-
-	static AdbDevice() { }
 
 
 	public const string ADB       = "adb";
 	public const string ADB_SHELL = "adb shell";
 	public const string TCPIP     = "5555";
 
+	private static AdbConnectionMode ResolveConnectionMode(string deviceName)
+	{
+		bool isIPAddr = IPAddress.TryParse(deviceName, out _);
+
+		return isIPAddr ? AdbConnectionMode.TCPIP : AdbConnectionMode.USB;
+	}
+
 	public static AdbDevice SetConnectionMode(AdbConnectionMode mode)
 	{
 		//
 
-		var packet = mode switch
+		AdbCommand packet = mode switch
 		{
 			AdbConnectionMode.USB   => AdbCommand.usb.Build(),
 			AdbConnectionMode.TCPIP => AdbCommand.tcpip.Build(),
@@ -365,9 +392,9 @@ public class AdbDevice
 
 		//
 
-		var devices = AvailableDeviceNames;
+		string[] devices = AvailableDeviceNames;
 
-		var deviceName = devices.First();
+		string deviceName = devices.First();
 
 		var device = new AdbDevice(deviceName, mode);
 
