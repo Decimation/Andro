@@ -14,15 +14,6 @@ using Novus.OS;
 #nullable disable
 namespace Andro.Android;
 
-public class AdbCommandOp
-{
-	public object[] Cmd { get; init; }
-
-	public string Alias { get; init; }
-
-	public AdbCommandOp() { }
-}
-
 [DebuggerDisplay("{StandardOutput} {StandardError} {BuiltCommand}")]
 public class AdbCommand : IDisposable
 {
@@ -85,21 +76,26 @@ public class AdbCommand : IDisposable
 	{
 		var list = new List<string>();
 
-		while (!r.EndOfStream)
-		{
-			string str  = r.ReadLine();
+		while (!r.EndOfStream) {
+			string str = r.ReadLine();
+
 			if (str != null) {
-				list.Add (str);
+				list.Add(str);
 			}
 		}
 
 		return list.ToArray();
+		// return r.ReadToEnd().Split("\n");
 	}
+
 	public void Start()
 	{
 		// Trace.WriteLine($"Start {BuiltCommand}");
 
-		Process.Start();
+		// Process.Start();
+
+		while (!Process.Start()&&!Process.HasExited) { }
+
 		StandardOutput = get(Process.StandardOutput).QuickJoin("\n").Trim().Trim('\r').Replace("\r", String.Empty);
 		StandardError  = get(Process.StandardError).QuickJoin("\n").Trim().Trim('\r').Replace("\r", String.Empty);
 
@@ -127,7 +123,21 @@ public class AdbCommand : IDisposable
 		var cmdStr = sb.ToString();
 
 		BuiltCommand = cmdStr;
+		/*var startInfo = new ProcessStartInfo()
+		{
+			Arguments              = BuiltCommand,
+			UseShellExecute        = false,
+			RedirectStandardError = true,
+			RedirectStandardOutput = true,
+			StandardOutputEncoding = Encoding.UTF8, FileName = "adb.exe"
+		};
 
+		var proc = new Process
+		{
+			StartInfo           = startInfo,
+			EnableRaisingEvents = true
+		};
+		Process = proc;*/
 		Process = Command.Shell(BuiltCommand);
 
 		Trace.WriteLine($"built:{BuiltCommand}");
@@ -149,13 +159,10 @@ public class AdbCommand : IDisposable
 			}
 		};
 
-	public static AdbCommand pull(string remoteFile, [CBN] string destFileName)
+	public static readonly AdbCommand pull = new($"{AdbDevice.ADB} pull", "\"{0}\" \"{1}\"")
 	{
-		return new("pull", $"\"{remoteFile}\"" + (destFileName == null ? String.Empty : $" \"{destFileName}\""))
-		{
-			SuccessPredicate = cmd => !(cmd.StandardError != null && cmd.StandardError.Contains("adb: error"))
-		};
-	}
+		SuccessPredicate = cmd => !(cmd.StandardError != null && cmd.StandardError.Contains("adb: error"))
+	};
 
 	public static readonly AdbCommand devices = new(AdbDevice.ADB, "devices");
 

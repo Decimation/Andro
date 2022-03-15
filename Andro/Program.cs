@@ -174,25 +174,22 @@ public static class Program
 						{
 							Console.Error.WriteLine(eventArgs.Data);
 						};
+
 						ps.OutputDataReceived += (sender, eventArgs) =>
 						{
 							Console.WriteLine(eventArgs.Data);
 						};
-						var a=ps.StandardOutput.ReadLine();
-						Console.WriteLine($"{a}|{b}");
 
 						if (input == "exit") {
-							break; 
+							break;
 						}
 					}
 
-					Console.WriteLine("exit sh");
 					break;
 				case "gi":
 					// return _device.GetItems(args[++i..]);
-					AdbCommand readArguments = AdbCommand.find;
-					readArguments.Build(args2: args[++i..]);
-					return readArguments;
+					var c = AdbCommand.find.Build(args2: args[++i..]);
+					return c;
 				case EXIT:
 					goto default;
 				case APP_SENDTO:
@@ -201,14 +198,19 @@ public static class Program
 				case APP_CTX:
 
 					return HandleOption(args[++i], AppIntegration.HandleContextMenu);
-				case PUSH_ALL:
+				/*case PUSH_ALL:
 
 					var localFiles = args[++i..];
 
 					return _device.PushAll(localFiles);
 				case PULL_ALL:
 
-					return _device.PullAll(args[++i], args[++i]);
+					string remFolder = args[++i];
+
+					var ssb = args.TryIndex(++i, out var destFolder);
+					destFolder ??= Environment.CurrentDirectory;
+					Console.WriteLine($"{remFolder} {Strings.Constants.ARROW_RIGHT} {destFolder}");
+					return _device.PullAll(remFolder, destFolder);*/
 				case FSIZE:
 					string file = args[++i];
 					return _device.GetFileSize(file);
@@ -216,12 +218,12 @@ public static class Program
 					// string folder = args[++i];
 					// return _device.GetFolderSize(folder);
 					return _device.GetFolderSize(args[++i..].QuickJoin(" "));
-				case PUSH_FOLDER:
+				/*case PUSH_FOLDER:
 					string dir  = args[++i];
 					string rdir = args[++i];
 
 					i++;
-					return _device.PushFolder(dir, rdir);
+					return _device.PushFolder(dir, rdir);*/
 				case PUSH:
 					string localSrcFile = args[++i];
 					string remoteDest   = args[++i];

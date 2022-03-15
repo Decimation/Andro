@@ -156,7 +156,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var cmd = GetItems(f);
+		var cmd = GetItems(f);
 
 		var files = cmd.StandardOutput.Split(OUT_SPLIT)[1..];
 
@@ -254,12 +254,19 @@ public class AdbDevice
 			var file = files[i];
 			var cmd  = transfer(file, dest);
 
+			if (cmd is not {}) {
+				return;
+			}
+
 			bag.Add(cmd);
 
-			if (cmd.Success.HasValue && !cmd.Success.Value)
+			if (cmd.Success.HasValue && !cmd.Success.Value) {
 				err++;
-			else
+			}
+			else {
 				cb1 += getSize(file);
+
+			}
 
 			Console.Write($"{Strings.Constants.ClearLine}{bag.Count}/{len} | {err} | " +
 			              $"{MathHelper.GetByteUnit(cb1)} | " +
@@ -272,22 +279,37 @@ public class AdbDevice
 		return bag.ToArray();
 	}
 
-	public AdbCommand Pull(string remoteFile, string localDestFolder)
+	/*public AdbCommand Pull(string remoteFile, string localDestFolder)
 	{
 		EnsureDevice();
 
 		var destFileName = localDestFolder;
 		var fileName     = Path.GetFileName(remoteFile);
 		destFileName = Path.Combine(destFileName, fileName);
+		//string remoteFile, [CBN] string destFileName
+		var cmd = AdbCommand.pull.Build(args: new[] { remoteFile, localDestFolder }, start: true);
 
-		var packet = AdbCommand.pull(remoteFile, destFileName);
+		try {
+			cmd.Start();
+			cmd.Process.StartInfo.WorkingDirectory = localDestFolder;
+			return cmd;
 
-		var cmd = packet.Build(false);
-		cmd.Process.StartInfo.WorkingDirectory = localDestFolder;
+		}
+		catch {
+			return null;
+
+		}
+		finally {
+
+		}
+
+		/*var cmd=Command.Run(ADB,$"pull {remoteFile} {localDestFolder}");
+
+		cmd.StartInfo.WorkingDirectory = localDestFolder;
 		cmd.Start();
-
-		return cmd;
-	}
+		Debug.WriteLine($"{cmd.Id}");
+		return cmd;#1#
+	}*/
 
 	public AdbCommand Push(string localSrcFile, string remoteDestFolder)
 	{
@@ -305,25 +327,26 @@ public class AdbDevice
 		return Task.Run(() => Push(localSrcFile, remoteDestFolder));
 	}
 
-	public AdbCommand[] PushFolder(string localSrcFolder, string remoteDestFolder)
+	/*public AdbCommand[] PushFolder(string localSrcFolder, string remoteDestFolder)
 	{
 		EnsureDevice();
 
 		var files = Directory.GetFiles(localSrcFolder);
 
 		return PushAll(files, remoteDestFolder);
-	}
+	}*/
 
-	public AdbCommand[] PullAll(string remFolder, string destFolder)
+	/*public AdbCommand[] PullAll(string remFolder, string destFolder)
 	{
 		EnsureDevice();
 
-		using var result = GetItems(remFolder);
+		var result = GetItems(remFolder);
 
-		return RunIOParallel(Pull, result.StandardOutput.Split(OUT_SPLIT), destFolder, s =>
+		return RunIOParallel(Pull, result.StandardOutput.Split(OUT_SPLIT)[1..], destFolder, s =>
 		{
-			var fileInfo = new FileInfo(Path.Combine(destFolder, Path.GetFileName(s)));
-			return fileInfo.Length;
+			// var fileInfo = new FileInfo(Path.Combine(destFolder, Path.GetFileName(s)));
+			// return fileInfo.Length;
+			return 0;
 		});
 	}
 
@@ -331,7 +354,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 		return RunIOParallel(Push, files, destFolder);
-	}
+	}*/
 
 	public override string ToString()
 	{
