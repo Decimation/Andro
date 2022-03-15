@@ -71,12 +71,9 @@ public static class Program
 
 		}
 #endif
-#if DEBUG
-		foreach (var v in Process.GetProcessesByName("adb")) {
-			v.Kill(true);
-			Console.WriteLine($"Killed {v.Id}");
-		}
 
+#if DEBUG
+		// KillAdb();
 #endif
 		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 
@@ -111,6 +108,14 @@ public static class Program
 
 
 		// ConsoleManager.WaitForInput();
+	}
+
+	private static void KillAdb()
+	{
+		foreach (var v in Process.GetProcessesByName("adb")) {
+			v.Kill(true);
+			Console.WriteLine($"Killed {v.Id}");
+		}
 	}
 
 	private static void Print(object data)

@@ -84,15 +84,31 @@ public class AdbCommand : IDisposable
 
 	public bool? Success => SuccessPredicate?.Invoke(this);
 
+	string[] get(StreamReader r)
+	{
+		var list = new List<string>();
+
+		while (!r.EndOfStream)
+		{
+			string str  = r.ReadLine();
+			if (str != null) {
+				list.Add (str);
+			}
+		}
+
+		return list.ToArray();
+	}
 	public void Start()
 	{
 		// Trace.WriteLine($"Start {BuiltCommand}");
 
 		Process.Start();
+		StandardOutput = get(Process.StandardOutput).QuickJoin("\n").Trim().Trim('\r').Replace("\r", String.Empty);
+		StandardError  = get(Process.StandardError).QuickJoin("\n").Trim().Trim('\r').Replace("\r", String.Empty);
 
 
-		StandardOutput = Process.StandardOutput.ReadToEnd().Trim().Trim('\r').Replace("\r", String.Empty);
-		StandardError  = Process.StandardError.ReadToEnd().Trim().Trim('\r').Replace("\r", String.Empty);
+		// StandardOutput = Process.StandardOutput.ReadToEnd().Trim().Trim('\r').Replace("\r", String.Empty);
+		// Process.Start();
 	}
 
 	[MURV]
@@ -119,11 +135,11 @@ public class AdbCommand : IDisposable
 
 		Process = Command.Shell(BuiltCommand);
 
+		Trace.WriteLine($"{BuiltCommand}");
+
 		if (start) {
 			Start();
 		}
-
-		Trace.WriteLine($"{BuiltCommand}");
 
 		return this;
 	}
