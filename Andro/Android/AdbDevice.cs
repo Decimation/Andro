@@ -78,9 +78,7 @@ public class AdbDevice
 	{
 		get
 		{
-			string[] first = AvailableDeviceNames;
-
-
+			var first = AvailableDeviceNames;
 			return first.FirstOrDefault();
 		}
 	}
@@ -89,111 +87,99 @@ public class AdbDevice
 	{
 		get
 		{
-			AdbCommand proc = AdbCommand.devices.Build();
+			var proc = AdbCommand.devices.Build();
 			proc.Start();
 			// Skip first line
 
-			string[] stdOut = proc.StandardOutput.Trim().Split(OUT_SPLIT).Skip<string>(1)
-			                      .Where(s => !String.IsNullOrWhiteSpace(s))
-			                      .Select(s => s.Split('\t')[0])
-			                      .ToArray();
+			var stdOut = proc.StandardOutput.Trim().Split(OUT_SPLIT).Skip<string>(1)
+			                 .Where(s => !String.IsNullOrWhiteSpace(s))
+			                 .Select(s => s.Split('\t')[0])
+			                 .ToArray();
 
 			return stdOut;
 		}
 	}
 
-
 	public AdbCommand GetItems(string folder)
 	{
 		EnsureDevice();
 
-		AdbCommand packet = AdbCommand.find.Build(args2: new[] { folder });
+		var packet = AdbCommand.find.Build(args2: new[] { folder });
 
 		return packet;
 	}
-
 
 	public int GetFileSize(string remoteFile, Process p = null)
 	{
 		EnsureDevice();
 
-		string args = $"wc \"{remoteFile}\""; //todo
+		var args = $"wc \"{remoteFile}\""; //todo
 
 		p ??= GetShell($"{ADB_SHELL} {args}");
 
-		TextWriter input =
-			TextWriter.Synchronized(p.StandardInput);
+		var input = TextWriter.Synchronized(p.StandardInput);
 
 		input.WriteLine(args);
 		input.Flush();
+
 		string s = null, s2 = null;
 
-		// var reader  = TextReader.Synchronized(p.StandardOutput);
-		// var reader2 = TextReader.Synchronized(p.StandardError);
-		StreamReader reader = p.StandardOutput;
+		var reader  = TextReader.Synchronized(p.StandardOutput);
+		var reader2 = TextReader.Synchronized(p.StandardError);
+
+		// StreamReader reader = p.StandardOutput;
 		// var reader2 = p.StandardError;
-
-
-		// if (!((StreamReader) reader2).EndOfStream) { }
 		s = reader.ReadToEnd();
 
-		if (String.IsNullOrWhiteSpace(s)) return 0;
-
-		if (s.Contains("Is a directory")) {
+		if (String.IsNullOrWhiteSpace(s) || s.Contains("Is a directory")) {
 			return 0;
 		}
 
-		Debug.WriteLine($"{s}");
-		string[] output = s.Split(' ');
+		var output = s.Split(' ');
 
-		int bytes = Int32.Parse(output[2]);
+		var b = Int32.TryParse(output[2], out var bytes);
 
 		return bytes;
-
-		// if (!((StreamReader) reader).EndOfStream) { }
-
-		// return 0;
-		/*if (!string.IsNullOrWhiteSpace(s2)) {
-			return 0;
-		}
-
-		s2 = reader2.ReadToEnd();*/
-
 
 	}
 
 	public static Process GetShell(string args)
 	{
-		Process p = Command.Shell(args);
+		var p = Command.Shell(args);
 		p.StartInfo.RedirectStandardInput = true;
 		p.StartInfo.RedirectStandardError = true;
 		p.Start();
 		return p;
 	}
 
-
 	public int GetFolderSize(string f)
 	{
 		EnsureDevice();
 
-		using AdbCommand cmd = GetItems(f);
+		using var cmd = GetItems(f);
 
-		string[] files = cmd.StandardOutput.Split(OUT_SPLIT)[1..];
-		int      cb    = 0;
+		var files = cmd.StandardOutput.Split(OUT_SPLIT)[1..];
 
-		var     sw = Stopwatch.StartNew();
-		Process ps = GetShell(ADB_SHELL);
+		for (int i = 0; i < files.Length; i++) {
+			files[i] = esca(files[i]);
+		}
 
-		int c = 0;
+		var cb = 0;
+
+		var sw = Stopwatch.StartNew();
+		var ps = GetShell(ADB_SHELL);
+
+		var c = 0;
 
 		Parallel.For(0, files.Length, (i, plr) =>
 		{
 			// var i2   = MathHelper.Wrap(i, ps.Length);
-			int size = GetFileSize(files[i]);
+			var size = GetFileSize(files[i]);
 
 			cb += size;
 			c++;
-			Console.Write($"{Strings.Constants.ClearLine}{cb}");
+
+			Console.Write($"{Strings.Constants.ClearLine}{cb} - {((double) c / files.Length):Pd/d}");
 		});
 
 		sw.Stop();
@@ -201,13 +187,18 @@ public class AdbDevice
 		return cb;
 	}
 
+	private static string esca(string s)
+	{
+		return s.Replace(" ", "\\ ");
+	}
+
 	public bool FileExists(string remoteFile)
 	{
 		EnsureDevice();
 
-		using AdbCommand packet = AdbCommand.wc.Build(args: remoteFile);
+		using var packet = AdbCommand.wc.Build(args: remoteFile);
 
-		int fs = GetFileSize(remoteFile);
+		var fs = GetFileSize(remoteFile);
 
 		return fs != Native.INVALID;
 	}
@@ -216,11 +207,10 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using AdbCommand cmd = AdbCommand.rm.Build(args: remoteFile);
+		using var cmd = AdbCommand.rm.Build(args: remoteFile);
 
 		return cmd;
 	}
-
 
 	/// <summary>
 	/// Ensures only <see cref="Name"/> is connected
@@ -248,21 +238,21 @@ public class AdbDevice
 	public AdbCommand[] RunIOParallel(Func<string, string, AdbCommand> transfer, string[] files, string dest,
 	                                  Func<string, long> getSize = null)
 	{
-		long cb1 = 0L;
-		int  len = files.Length;
-		var  bag = new ConcurrentBag<AdbCommand>();
-		var  sw  = Stopwatch.StartNew();
+		var cb1 = 0L;
+		var len = files.Length;
+		var bag = new ConcurrentBag<AdbCommand>();
+		var sw  = Stopwatch.StartNew();
 
 		_ensure = false;
 
 		getSize ??= _ => 0;
 
-		int err = 0;
+		var err = 0;
 
-		ParallelLoopResult plr = Parallel.For(0, len, (i, pls) =>
+		var plr = Parallel.For(0, len, (i, pls) =>
 		{
-			string     file = files[i];
-			AdbCommand cmd  = transfer(file, dest);
+			var file = files[i];
+			var cmd  = transfer(file, dest);
 
 			bag.Add(cmd);
 
@@ -286,13 +276,13 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		string destFileName = localDestFolder;
-		string fileName     = Path.GetFileName(remoteFile);
+		var destFileName = localDestFolder;
+		var fileName     = Path.GetFileName(remoteFile);
 		destFileName = Path.Combine(destFileName, fileName);
 
-		AdbCommand packet = AdbCommand.pull(remoteFile, destFileName);
+		var packet = AdbCommand.pull(remoteFile, destFileName);
 
-		AdbCommand cmd = packet.Build(false);
+		var cmd = packet.Build(false);
 		cmd.Process.StartInfo.WorkingDirectory = localDestFolder;
 		cmd.Start();
 
@@ -303,9 +293,9 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		AdbCommand packet = AdbCommand.push(localSrcFile, remoteDestFolder);
+		var packet = AdbCommand.push(localSrcFile, remoteDestFolder);
 
-		AdbCommand cmd = packet.Build();
+		var cmd = packet.Build();
 
 		return cmd;
 	}
@@ -319,7 +309,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		string[] files = Directory.GetFiles(localSrcFolder);
+		var files = Directory.GetFiles(localSrcFolder);
 
 		return PushAll(files, remoteDestFolder);
 	}
@@ -328,7 +318,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using AdbCommand result = GetItems(remFolder);
+		using var result = GetItems(remFolder);
 
 		return RunIOParallel(Pull, result.StandardOutput.Split(OUT_SPLIT), destFolder, s =>
 		{
@@ -358,14 +348,13 @@ public class AdbDevice
 
 	private static bool _ensure;
 
-
 	public const string ADB       = "adb";
 	public const string ADB_SHELL = "adb shell";
 	public const string TCPIP     = "5555";
 
 	private static AdbConnectionMode ResolveConnectionMode(string deviceName)
 	{
-		bool isIPAddr = IPAddress.TryParse(deviceName, out _);
+		var isIPAddr = IPAddress.TryParse(deviceName, out _);
 
 		return isIPAddr ? AdbConnectionMode.TCPIP : AdbConnectionMode.USB;
 	}
@@ -374,7 +363,7 @@ public class AdbDevice
 	{
 		//
 
-		AdbCommand packet = mode switch
+		var packet = mode switch
 		{
 			AdbConnectionMode.USB   => AdbCommand.usb.Build(),
 			AdbConnectionMode.TCPIP => AdbCommand.tcpip.Build(),
@@ -382,19 +371,17 @@ public class AdbDevice
 			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
 		};
 
-
 		/*
 		 * Wait a bit for the device to connect
 		 */
 
 		Thread.Sleep(TimeSpan.FromSeconds(3));
 
-
 		//
 
-		string[] devices = AvailableDeviceNames;
+		var devices = AvailableDeviceNames;
 
-		string deviceName = devices.First();
+		var deviceName = devices.First();
 
 		var device = new AdbDevice(deviceName, mode);
 

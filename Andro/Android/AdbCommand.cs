@@ -11,7 +11,6 @@ using Novus.OS;
 
 #pragma warning disable IDE0079
 
-
 #nullable disable
 namespace Andro.Android;
 
@@ -29,7 +28,6 @@ public class AdbCommand : IDisposable
 {
 	public string Value { get; }
 
-
 	public string BuiltCommand { get; private set; }
 
 	public bool IsBuilt => Process != null;
@@ -43,7 +41,6 @@ public class AdbCommand : IDisposable
 	public string format;
 
 	public List<object> Args { get; set; }
-
 
 	[SFM(AppIntegration.STRING_FORMAT_ARG)]
 	public AdbCommand(string s = AdbDevice.ADB, string fmt = null)
@@ -106,7 +103,6 @@ public class AdbCommand : IDisposable
 		StandardOutput = get(Process.StandardOutput).QuickJoin("\n").Trim().Trim('\r').Replace("\r", String.Empty);
 		StandardError  = get(Process.StandardError).QuickJoin("\n").Trim().Trim('\r').Replace("\r", String.Empty);
 
-
 		// StandardOutput = Process.StandardOutput.ReadToEnd().Trim().Trim('\r').Replace("\r", String.Empty);
 		// Process.Start();
 	}
@@ -130,12 +126,11 @@ public class AdbCommand : IDisposable
 
 		var cmdStr = sb.ToString();
 
-
 		BuiltCommand = cmdStr;
 
 		Process = Command.Shell(BuiltCommand);
 
-		Trace.WriteLine($"{BuiltCommand}");
+		Trace.WriteLine($"built:{BuiltCommand}");
 
 		if (start) {
 			Start();
@@ -153,7 +148,6 @@ public class AdbCommand : IDisposable
 				         cmd.StandardError.Split('\n').Any(s => s.Contains("No such file")));
 			}
 		};
-
 
 	public static AdbCommand pull(string remoteFile, [CBN] string destFileName)
 	{

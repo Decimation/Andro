@@ -59,7 +59,6 @@ public static class Program
 	private const char   CTRL_Z = '\x1A';
 	private const string EXIT   = "exit";
 
-
 	public static async Task Main(string[] args)
 	{
 #if TEST
@@ -99,17 +98,14 @@ public static class Program
 		while ((input = Console.ReadLine()) != null) {
 			input = input.Trim();
 
-
 			var inputArgs = input.Split(' ');
 			data = await ReadArguments(inputArgs)!;
 			Print(data);
 			continue;
 		}
 
-
 		// ConsoleManager.WaitForInput();
 	}
-
 
 	private static void KillAdb()
 	{
@@ -156,7 +152,6 @@ public static class Program
 
 		// var argEnum = args.GetEnumerator().Cast<string>();
 
-
 		for (int i = 0; i < args.Length; i++) {
 
 			var current = args[i];
@@ -173,7 +168,7 @@ public static class Program
 						ps.StandardInput.WriteLine(input);
 						ps.StandardInput.Flush();
 						Trace.WriteLine($">>{input}");
-						string? b = null;
+						string b = null;
 
 						ps.ErrorDataReceived += (sender, eventArgs) =>
 						{
@@ -213,14 +208,14 @@ public static class Program
 					return _device.PushAll(localFiles);
 				case PULL_ALL:
 
-
 					return _device.PullAll(args[++i], args[++i]);
 				case FSIZE:
 					string file = args[++i];
 					return _device.GetFileSize(file);
 				case DSIZE:
-					string folder = args[++i];
-					return _device.GetFolderSize(folder);
+					// string folder = args[++i];
+					// return _device.GetFolderSize(folder);
+					return _device.GetFolderSize(args[++i..].QuickJoin(" "));
 				case PUSH_FOLDER:
 					string dir  = args[++i];
 					string rdir = args[++i];
