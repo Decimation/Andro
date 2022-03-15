@@ -109,6 +109,8 @@ public static class Program
 	private static void Print(object data)
 	{
 		switch (data) {
+#if !DEBUG
+			
 			case AdbCommand c:
 				Trace.WriteLine(c);
 				break;
@@ -120,6 +122,8 @@ public static class Program
 
 				break;
 			}
+#endif
+
 			default:
 				Console.WriteLine(data);
 				break;
@@ -132,74 +136,78 @@ public static class Program
 		if (args == null || !args.Any()) {
 			return null;
 		}
+
 #if DEBUG
 		Console.WriteLine($">> {args.QuickJoin()}".AddColor(Color.Beige));
 #endif
 		Trace.WriteLine($">> {args.QuickJoin()}");
 
-		var argEnum = args.GetEnumerator().Cast<string>();
-
-		while (argEnum.MoveNext()) {
-			string current = argEnum.Current;
+		// var argEnum = args.GetEnumerator().Cast<string>();
 
 
-			switch (current) {
+		for (int i = 0; i < args.Length; i++) {
+
+			var current = args[i];
+
+			switch (current)
+			{
+				case "gi":
+					// return _device.GetItems(args[++i..]);
+					AdbCommand readArguments = AdbCommand.find;
+					readArguments.Build(args2:args[++i..]);
+					return readArguments;
 				case EXIT:
 					goto default;
 				case APP_SENDTO:
-					return HandleOption(argEnum, AppIntegration.HandleSendToMenu);
+
+					return HandleOption(args[++i],AppIntegration.HandleSendToMenu);
 				case APP_CTX:
-					return HandleOption(argEnum, AppIntegration.HandleContextMenu);
+
+					return HandleOption(args[++i], AppIntegration.HandleContextMenu);
 				case PUSH_ALL:
-					var localFiles = args.Skip(1).ToArray();
+
+					var localFiles = args[++i..];
 
 					return _device.PushAll(localFiles);
 				case PULL_ALL:
-					// args = args.Skip(1).ToArray();
+					
 
-					string remFolder  = argEnum.MoveAndGet();
-					string destFolder = Environment.CurrentDirectory;
-
-					if (argEnum.MoveNext()) {
-						destFolder = argEnum.Current;
-					}
-
-					return _device.PullAll(remFolder, destFolder);
+					return _device.PullAll(args[++i], args[++i]);
 				case FSIZE:
-					string file = argEnum.MoveAndGet();
-
-					argEnum.MoveNext();
+					string file = args[++i];
 					return _device.GetFileSize(file);
 				case DSIZE:
-					string folder = argEnum.MoveAndGet();
-
-					argEnum.MoveNext();
+					string folder = args[++i];
 					return _device.GetFolderSize(folder);
 				case PUSH_FOLDER:
-					string dir  = argEnum.MoveAndGet();
-					string rdir = argEnum.MoveAndGet();
+					string dir  = args[++i];
+					string rdir = args[++i];
 
-					argEnum.MoveNext();
+					i++;
 					return _device.PushFolder(dir, rdir);
 				case PUSH:
-					string localSrcFile = argEnum.MoveAndGet();
-					string remoteDest   = argEnum.MoveAndGet();
+					string localSrcFile = args[++i];
+					string remoteDest   = args[++i];
 
-					argEnum.MoveNext();
+					i++;
 
 					var pushTask = _device.PushAsync(localSrcFile, remoteDest);
 
 					ThreadPool.QueueUserWorkItem((c) =>
 					{
-						do {
-							if (pushTask.IsCompleted) {
+						do
+						{
+							if (pushTask.IsCompleted)
+							{
 								break;
 							}
 
-							for (int i = 0; i <= 3; i++) {
+							for (int i = 0; i <= 3; i++)
+							{
 								Console.Write($"\r{new string('.', i)}");
 
-								if (pushTask.IsCompleted) {
+								if (pushTask.IsCompleted)
+								{
 									break;
 								}
 
@@ -219,9 +227,8 @@ public static class Program
 		return null;
 	}
 
-	private static bool? HandleOption(IEnumerator<string> argEnumerator, Func<bool?, bool?> f)
+	private static bool? HandleOption(string op, Func<bool?, bool?> f)
 	{
-		string op = argEnumerator.MoveAndGet();
 
 		switch (op) {
 			case null:

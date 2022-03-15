@@ -15,6 +15,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
+using Kantan.Collections;
 using Novus.OS.Win32;
 using Kantan.Diagnostics;
 using Novus.OS;
@@ -90,14 +91,13 @@ public class AdbDevice
 	{
 		get
 		{
-			using var proc = AdbCommands.devices().Build();
+			using var proc = AdbCommand.devices.Build();
 
 			// Skip first line
-			var stdOut = proc.StandardOutput
-			                 .Skip(1)
-			                 .Where(s => !string.IsNullOrWhiteSpace(s))
-			                 .Select(s => s.Split('\t')[0])
-			                 .ToArray();
+			var stdOut = Enumerable.Skip<string>(proc.StandardOutput.Trim().Split(bs), 1)
+			                       .Where(s => !string.IsNullOrWhiteSpace(s))
+			                       .Select(s => s.Split('\t')[0])
+			                       .ToArray();
 
 			return stdOut;
 		}
@@ -110,8 +110,8 @@ public class AdbDevice
 
 		var packet = mode switch
 		{
-			AdbConnectionMode.USB   => AdbCommands.usb(),
-			AdbConnectionMode.TCPIP => AdbCommands.tcpip(),
+			AdbConnectionMode.USB   => AdbCommand.usb.Build(),
+			AdbConnectionMode.TCPIP => AdbCommand.tcpip.Build(),
 
 			_ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
 		};
@@ -140,7 +140,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var packet = AdbCommands.wc(remoteFile);
+		using var packet = AdbCommand.wc(remoteFile);
 
 		using var cmd = packet.Build();
 
@@ -148,9 +148,9 @@ public class AdbDevice
 			return Native.INVALID;
 		}
 
-		if (cmd.StandardOutput.Any()) {
+		if (Enumerable.Any<char>(cmd.StandardOutput)) {
 
-			var output = cmd.StandardOutput.First().Split(' ');
+			var output = Enumerable.First<string>(cmd.StandardOutput.Split(bs)).Split(' ');
 
 			// var lines  = int.Parse(output[0]);
 			// var words  = int.Parse(output[1]);
@@ -168,17 +168,19 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var cmd = GetFiles(f);
+		using var cmd = GetItems(f);
 
-		var files = cmd.StandardOutput;
+		var files = cmd.StandardOutput.Split(bs);
 		var cb    = 0;
 
 		Parallel.For(0, files.Length, (i, plr) =>
 		{
 			var size = GetFileSize(files[i]);
 			cb += size;
+			Console.Write($"{S}{cb}");
 		});
 
+		Console.WriteLine();
 		return cb;
 	}
 
@@ -186,7 +188,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var packet = AdbCommands.wc(remoteFile);
+		using var packet = AdbCommand.wc(remoteFile);
 
 		using var cmd = packet.Build();
 
@@ -199,27 +201,20 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		var packet = AdbCommands.remove(remoteFile);
+		var packet = AdbCommand.rm.Build(args: remoteFile);
 
 		var cmd = packet.Build();
 
 		return cmd;
 	}
 
-	public AdbCommand GetFiles(string remoteFolder, bool abs = true)
+	public AdbCommand GetItems(string folder)
 	{
 		EnsureDevice();
-
-		var packet = AdbCommands.ls(remoteFolder);
+			
+		var packet = AdbCommand.find.Build(args:folder);
 
 		var cmd = packet.Build();
-
-		if (abs) {
-
-			cmd.StandardOutput = cmd.StandardOutput
-			                        .Select(x => GetPath(x, remoteFolder))
-			                        .ToArray();
-		}
 
 		return cmd;
 	}
@@ -232,7 +227,7 @@ public class AdbDevice
 	public Process Shell(DataReceivedEventHandler outputHandler = null, DataReceivedEventHandler errorHandler = null)
 	{
 		Process p = Command.Run(Native.CMD_EXE, outputHandler, errorHandler);
-		p.StandardInput.WriteLine(AdbCommands.ADB_SHELL);
+		p.StandardInput.WriteLine((string?) AdbDevice.ADB_SHELL);
 		return p;
 
 	}
@@ -262,7 +257,6 @@ public class AdbDevice
 	public AdbCommand[] RunIOParallel(Func<string, string, AdbCommand> transfer, string[] files, string dest,
 	                                  Func<string, long> getSize = null)
 	{
-		// var cb2 = GetFolderSize(dest);
 		var cb1 = 0L;
 		var len = files.Length;
 		var bag = new ConcurrentBag<AdbCommand>();
@@ -288,7 +282,7 @@ public class AdbDevice
 				cb1 += getSize(file);
 			}
 
-			Console.Write($"\r {bag.Count}/{len} | {err} | " +
+			Console.Write($"{S}{bag.Count}/{len} | {err} | " +
 			              $"{MathHelper.GetByteUnit(cb1)} | " +
 			              $"{sw.Elapsed.TotalSeconds:F3} sec ");
 		});
@@ -307,7 +301,7 @@ public class AdbDevice
 		string fileName     = Path.GetFileName(remoteFile);
 		destFileName = Path.Combine(destFileName, fileName);
 
-		AdbCommand packet = AdbCommands.pull(remoteFile, destFileName);
+		AdbCommand packet = AdbCommand.pull(remoteFile, destFileName);
 
 		AdbCommand cmd = packet.Build(false);
 		cmd.Process.StartInfo.WorkingDirectory = localDestFolder;
@@ -320,7 +314,7 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		var packet = AdbCommands.push(localSrcFile, remoteDestFolder);
+		var packet = AdbCommand.push(localSrcFile, remoteDestFolder);
 
 		var cmd = packet.Build();
 
@@ -345,9 +339,9 @@ public class AdbDevice
 	{
 		EnsureDevice();
 
-		using var result = GetFiles(remFolder);
+		using var result = GetItems(remFolder);
 
-		return RunIOParallel(Pull, result.StandardOutput, destFolder, s =>
+		return RunIOParallel(Pull, result.StandardOutput.Split(bs), destFolder, s =>
 		{
 			var fileInfo = new FileInfo(Path.Combine(destFolder, Path.GetFileName(s)));
 			return fileInfo.Length;
@@ -364,13 +358,25 @@ public class AdbDevice
 	{
 		var sb = new StringBuilder();
 
-		sb.AppendFormat($"Name: {Name}\n")
-		  .AppendFormat($"Mode: {Mode}\n");
+		sb.AppendFormat($"Name: {Name}| Mode: {Mode}");
 
 		return sb.ToString();
 	}
 
 	private const string SDCARD = "sdcard/";
 
+	private const char bs = '\n';
+
 	private static bool _ensure;
+
+	private static readonly string S= new string('\r', Console.BufferWidth);
+
+	static AdbDevice()
+	{
+	}
+
+
+	public const  string     ADB       = "adb";
+	public const  string     ADB_SHELL = "adb shell";
+	public const  string     TCPIP     = "5555";
 }
