@@ -1,29 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.IO;
-using System.IO.Pipes;
-using System.Linq;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 using Andro.Android;
 using Andro.App;
 using Andro.Properties;
-using Andro.Utilities;
-using JetBrains.Annotations;
-using Kantan.Cli;
-using Kantan.Collections;
 using Kantan.Text;
-using Microsoft.VisualBasic;
-using Novus;
-using Novus.OS;
-using FileSystem = Novus.OS.FileSystem;
-using Strings = Kantan.Text.Strings;
+using Novus.Memory;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -86,25 +70,39 @@ public static class Program
 		 *
 		 */
 
-		_device = AdbDevice.First;
+		// await GetDevice1(args);
 
-		Console.WriteLine($">> {_device.ToString().AddColor(Color.Aquamarine)}");
+		/*var tcp = new TcpClient("localhost", 5037);
+		var sw  = new StreamWriter(tcp.GetStream());
+		var nsw = ((NetworkStream) sw.BaseStream);
+		var sr  = new StreamReader(tcp.GetStream());
+		var nsr = (NetworkStream) (sr.BaseStream);
+		sw.AutoFlush = true;
 
-		object data;
-		string input;
-		data = await ReadArguments(args)!;
-		Print(data);
+		Debug.Assert(tcp.Connected);
 
-		while ((input = Console.ReadLine()) != null) {
-			input = input.Trim();
+		var buffer = Encoding.ASCII.GetBytes("host:version");
+		var i      =buffer.Length;
+		var p      = Mem.AddressOf(ref i);
+		await nsw.WriteAsync(Encoding.UTF8.GetBytes(i.ToString("x4")));
+		await nsw.WriteAsync(buffer);
+		await nsw.FlushAsync();
 
-			var inputArgs = input.Split(' ');
-			data = await ReadArguments(inputArgs)!;
-			Print(data);
-			continue;
-		}
+		byte[] rg = new byte[128];
+		Console.WriteLine(await nsr.ReadAsync(rg));
+		Console.WriteLine(Encoding.ASCII.GetString(rg));*/
 
-		// ConsoleManager.WaitForInput();
+		var d = new AdbDevice();
+		await d.Send("host:version");
+		string s = null;
+		Console.WriteLine(s = await d.ReadStringAsync(4));
+
+		await d.Send("host:devices");
+		Console.WriteLine(s = await d.ReadStringAsync(4));
+
+		await d.Send($"host:transport:{s}");
+		Console.WriteLine(s = await d.ReadStringAsync());
+		// await d.Verify(false);
 	}
 
 	private static void KillAdb()
@@ -138,7 +136,7 @@ public static class Program
 		}
 	}
 
-	[CBN]
+	/*[CBN]
 	private static async Task<object> ReadArguments(string[] args)
 	{
 		if (args == null || !args.Any()) {
@@ -210,7 +208,7 @@ public static class Program
 					var ssb = args.TryIndex(++i, out var destFolder);
 					destFolder ??= Environment.CurrentDirectory;
 					Console.WriteLine($"{remFolder} {Strings.Constants.ARROW_RIGHT} {destFolder}");
-					return _device.PullAll(remFolder, destFolder);*/
+					return _device.PullAll(remFolder, destFolder);#1#
 				case FSIZE:
 					string file = args[++i];
 					return _device.GetFileSize(file);
@@ -223,7 +221,7 @@ public static class Program
 					string rdir = args[++i];
 
 					i++;
-					return _device.PushFolder(dir, rdir);*/
+					return _device.PushFolder(dir, rdir);#1#
 				case PUSH:
 					string localSrcFile = args[++i];
 					string remoteDest   = args[++i];
@@ -232,7 +230,7 @@ public static class Program
 
 					var pushTask = _device.PushAsync(localSrcFile, remoteDest);
 
-					ThreadPool.QueueUserWorkItem((c) =>
+					ThreadPool.QueueUserWorkItem(c =>
 					{
 						do {
 							if (pushTask.IsCompleted) {
@@ -261,6 +259,7 @@ public static class Program
 
 		return null;
 	}
+	*/
 
 	private static bool? HandleOption(string op, Func<bool?, bool?> f)
 	{
