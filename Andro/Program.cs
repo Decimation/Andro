@@ -100,8 +100,14 @@ public static class Program
 		await d.Send("host:devices");
 		Console.WriteLine(s = await d.ReadStringAsync(4));
 
-		await d.Send($"host:transport:{s}");
-		Console.WriteLine(s = await d.ReadStringAsync());
+		/*await d.Send($"host:transport:{s}");
+		Console.WriteLine(s = await d.ReadStringAsync());*/
+
+		await d.Send($"sync:");
+		await d.Send("OKAY");
+		Console.WriteLine(s = await d.ReadStringAsync(4));
+		Console.WriteLine(s = await d.ReadStringAsync(29));
+
 		// await d.Verify(false);
 	}
 

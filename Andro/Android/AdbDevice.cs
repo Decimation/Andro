@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Andro.Utilities;
 using JetBrains.Annotations;
-using Kantan.Cli;
 using Kantan.Numeric;
 using Kantan.Text;
 #nullable disable
@@ -19,7 +18,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using Kantan.Collections;
-using Novus.OS.Win32;
+using Novus.Win32;
 using Kantan.Diagnostics;
 using Kantan.Utilities;
 using Novus.OS;

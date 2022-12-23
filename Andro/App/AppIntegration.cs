@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
 using Andro.Properties;
-using Kantan.Cli;
 using Microsoft.Win32;
 using Novus.OS;
 
@@ -12,7 +11,6 @@ public static class AppIntegration
 {
 	static AppIntegration() { }
 
-
 	private const string REG_SHELL = @"SOFTWARE\Classes\*\shell\Andro";
 
 	private const string REG_SHELL_MAIN     = @"SOFTWARE\Classes\*\shell\Andro\shell\Main";
@@ -21,13 +19,11 @@ public static class AppIntegration
 	private const string REG_SHELL_FIRST     = @"SOFTWARE\Classes\*\shell\Andro\shell\First";
 	private const string REG_SHELL_FIRST_CMD = @"SOFTWARE\Classes\*\shell\Andro\shell\First\command";
 
-
 	/*
 	 * HKEY_CLASSES_ROOT is an alias, a merging, of two other locations:
 	 *		HKEY_CURRENT_USER\Software\Classes
 	 *		HKEY_LOCAL_MACHINE\Software\Classes
 	 */
-
 
 	public static string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
 
@@ -46,7 +42,6 @@ public static class AppIntegration
 			RegistryKey first    = null;
 			RegistryKey firstCmd = null;
 
-
 			string fullPath = ExeLocation;
 
 			//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
@@ -61,7 +56,6 @@ public static class AppIntegration
 					shell.SetValue("subcommands", string.Empty);
 				}
 
-
 				main = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN);
 
 				if (main != null) {
@@ -72,10 +66,8 @@ public static class AppIntegration
 				mainCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN_CMD);
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
 
-
 				first = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST);
 				first?.SetValue(null, "sdcard/");
-
 
 				firstCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST_CMD);
 				firstCmd?.SetValue(null, $"\"{fullPath}\" {Program.PUSH} \"%1\" sdcard/");
@@ -83,7 +75,7 @@ public static class AppIntegration
 
 			}
 			catch (Exception ex) {
-				ConsoleManager.Write($"{ex.Message}");
+				Debug.WriteLine($"{ex.Message}");
 			}
 			finally {
 				shell?.Close();
