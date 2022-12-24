@@ -41,6 +41,7 @@ public static class Program
 	public const string OP_RM  = "rm";
 
 	private const char   CTRL_Z = '\x1A';
+	private const string EXIT   = "exit";
 
 	public static async Task Main(string[] args)
 	{
@@ -50,7 +51,6 @@ public static class Program
 
 			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat", @"C:\users\deci\downloads" };
 			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat" };
-
 		}
 #endif
 
@@ -69,85 +69,31 @@ public static class Program
 		 *
 		 */
 
-		// await GetDevice1(args);
-
-		/*var tcp = new TcpClient("localhost", 5037);
-		var sw  = new StreamWriter(tcp.GetStream());
-		var nsw = ((NetworkStream) sw.BaseStream);
-		var sr  = new StreamReader(tcp.GetStream());
-		var nsr = (NetworkStream) (sr.BaseStream);
-		sw.AutoFlush = true;
-
-		Debug.Assert(tcp.Connected);
-
-		var buffer = Encoding.ASCII.GetBytes("host:version");
-		var i      =buffer.Length;
-		var p      = Mem.AddressOf(ref i);
-		await nsw.WriteAsync(Encoding.UTF8.GetBytes(i.ToString("x4")));
-		await nsw.WriteAsync(buffer);
-		await nsw.FlushAsync();
-
-		byte[] rg = new byte[128];
-		Console.WriteLine(await nsr.ReadAsync(rg));
-		Console.WriteLine(Encoding.ASCII.GetString(rg));*/
-
 		string s = null;
-		
+
 		var d = new AdbDevice();
 
-		// NOTE: host:devices closes connection after
-		await d.Send("host:devices");
-		await d.Verify();
-
-		Console.WriteLine(s = await d.ReadStringAsync());
-		Console.WriteLine(d.IsAlive);
+		s = await d.GetDevicesAsync();
+		Console.WriteLine(s);
 		d.Dispose();
 		d = new AdbDevice();
 
-		/*
-		// NOTE: no verification
-		await d.Send("host:version");
-		Console.WriteLine(s = await d.ReadStringAsync(AdbDevice.SZ_LEN));*/
+		await d.SendAsync($"host:transport-any");
+		await d.Verify();
 
-		await d.Send($"host:transport-any");
-		await d.Verify(false);
-
-		await d.Send($"shell:ls");
-		await d.Verify(false);
-		Console.WriteLine(s = await d.Reader.ReadToEndAsync());
-
+		var bytes = await d.ShellAsync("ls", new []{ "sdcard/pictures/Reaction images/" });
+		Console.WriteLine(bytes);
+		Console.WriteLine(d.IsAlive);
+		
+		var async = await d.ShellAsync("echo hi");
+		Console.WriteLine(async);
 	}
-
-	private const string EXIT   = "exit";
 
 	private static void KillAdb()
 	{
 		foreach (var v in Process.GetProcessesByName("adb")) {
 			v.Kill(true);
 			Console.WriteLine($"Killed {v.Id}");
-		}
-	}
-
-	private static void Print(object data)
-	{
-		switch (data) {
-#if !DEBUG
-			case AdbCommand c:
-				Trace.WriteLine(c);
-				break;
-			case AdbCommand[] commands:
-			{
-				foreach (AdbCommand cmd in commands) {
-					Trace.WriteLine(cmd);
-				}
-
-				break;
-			}
-#endif
-
-			default:
-				Console.WriteLine(data);
-				break;
 		}
 	}
 

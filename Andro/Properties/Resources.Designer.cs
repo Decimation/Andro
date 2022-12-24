@@ -61,6 +61,24 @@ namespace Andro.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to host:devices.
+        /// </summary>
+        internal static string Cmd_Devices {
+            get {
+                return ResourceManager.GetString("Cmd_Devices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to host:version.
+        /// </summary>
+        internal static string Cmd_Version {
+            get {
+                return ResourceManager.GetString("Cmd_Version", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Andro.
         /// </summary>
         internal static string Name {

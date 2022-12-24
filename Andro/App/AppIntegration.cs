@@ -126,13 +126,10 @@ public static class AppIntegration
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 				file.Save(sendToFile, false);
 				return true;
-				break;
 			case false:
 				var pp = sendToFile;
 				File.Delete(pp);
 				return false;
-
-				break;
 
 		}
 

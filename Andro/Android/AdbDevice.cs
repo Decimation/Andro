@@ -21,6 +21,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using Andro.Properties;
 using Kantan.Collections;
 using Novus.Win32;
 using Kantan.Diagnostics;
@@ -75,9 +76,9 @@ public class AdbDevice : IDisposable
 
 	public bool IsAlive => Tcp.Connected;
 
-	public AdbDevice()
+	public AdbDevice(string host = "localhost", int port = 5037)
 	{
-		Tcp = new TcpClient("localhost", 5037);
+		Tcp = new TcpClient(host, port);
 
 		NetworkStream = Tcp.GetStream();
 
@@ -87,11 +88,11 @@ public class AdbDevice : IDisposable
 		Writer.AutoFlush = true;
 	}
 
-	public async Task Send(string s, CancellationToken? t = null)
+	public async Task SendAsync(string s, CancellationToken? t = null)
 	{
 		t ??= CancellationToken.None;
-		string cm = GetPayload(s, out byte[] rg, out var cm2);
-		await NetworkStream.WriteAsync(cm2, t.Value);
+		string s2 = GetPayload(s, out byte[] rg, out var rg2);
+		await NetworkStream.WriteAsync(rg2, t.Value);
 		await NetworkStream.FlushAsync(t.Value);
 
 		return;
@@ -113,7 +114,34 @@ public class AdbDevice : IDisposable
 
 	}
 
-	public async Task<string> Verify(bool throws = false)
+	public async Task<string> ReadStringAsync(int l)
+	{
+		var buf = new byte[l];
+		var l2  = await NetworkStream.ReadAsync(buf);
+
+		var s = Encoding.UTF8.GetString(buf);
+
+		return s;
+	}
+
+	/// <remarks>Connection terminates after command</remarks>
+	public async ValueTask<string> GetDevicesAsync()
+	{
+		// NOTE: host:devices closes connection after
+		await SendAsync(Resources.Cmd_Devices);
+		await Verify();
+		var s = await ReadStringAsync();
+		return s;
+	}
+
+	public async ValueTask<string> GetVersionAsync()
+	{
+		// NOTE: no verification
+		await SendAsync(Resources.Cmd_Version);
+		return await ReadStringAsync(SZ_LEN);
+	}
+
+	public async Task<string> Verify(Action<string> f = null)
 	{
 		var res = await ReadStringAsync(SZ_LEN);
 
@@ -123,7 +151,7 @@ public class AdbDevice : IDisposable
 			case "OKAY":
 				break;
 			default:
-				
+				f?.Invoke(res);
 				/*msg = await ReadStringAsync();
 
 				if (throws) {
@@ -136,15 +164,24 @@ public class AdbDevice : IDisposable
 		return msg;
 	}
 
-	public async Task<string> ReadStringAsync(int l)
+	public async Task<string> ShellAsync(string cmd, IEnumerable<string> args = null)
 	{
-		var buf = new byte[l];
-		var l2  = await NetworkStream.ReadAsync(buf);
-		// await NetworkStream.ReadFullyAsync(buf);
+		args ??= Enumerable.Empty<string>();
+		var cmd2 = $"{cmd} {String.Join(' ', args.Select(Escape))}";
+		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
 
-		var s = Encoding.UTF8.GetString(buf);
+		await SendAsync($"shell:{cmd2}");
+		await Verify();
+		
+		// var l = await Reader.ReadLineAsync();
+		// return l;
+		var output = await Reader.ReadToEndAsync();
+		return output;
+	}
 
-		return s;
+	public static string Escape(string e)
+	{
+		return e.Replace(" ", "' '");
 	}
 
 	public void Dispose()
