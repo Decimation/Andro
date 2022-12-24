@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Drawing;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -7,6 +9,8 @@ using Andro.Android;
 using Andro.App;
 using Andro.Properties;
 using Kantan.Text;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Novus.Memory;
 
 // ReSharper disable AssignNullToNotNullAttribute
@@ -25,8 +29,6 @@ namespace Andro;
  */
 public static class Program
 {
-	private static AdbDevice _device;
-
 	public const string PULL_ALL    = "/pull-all";
 	public const string PUSH_ALL    = "/push-all";
 	public const string PUSH_FOLDER = "/push-folder";
@@ -57,6 +59,15 @@ public static class Program
 #if DEBUG
 		// KillAdb();
 #endif
+
+		using IHost h = Host.CreateDefaultBuilder()
+			.ConfigureHostOptions((a, b) =>
+			{
+				a.HostingEnvironment.ApplicationName = R.Name;
+			})
+			.ConfigureLogging((a, b) => { })
+			.Build();
+
 		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 
 		/*
@@ -73,20 +84,24 @@ public static class Program
 
 		var d = new AdbDevice();
 
-		s = await d.GetDevicesAsync();
+		s = await d.TrackDevicesAsync();
 		Console.WriteLine(s);
-		d.Dispose();
-		d = new AdbDevice();
+		// d.Dispose();
+		// d = new AdbDevice();
 
-		await d.SendAsync($"host:transport-any");
-		await d.Verify();
+		/*var payload = AdbHelper.GetPayload("host:track-devices", out var rg, out var rg2);
 
-		var bytes = await d.ShellAsync("ls", new []{ "sdcard/pictures/Reaction images/" });
+		await d.Tcp.Client.SendAsync(rg2);
+		var buffer = MemoryPool<byte>.Shared.Rent(8192);
+		await d.Tcp.Client.ReceiveAsync(buffer.Memory);
+		Console.WriteLine(Encoding.UTF8.GetString(buffer.Memory.Span));*/
+
+		var bytes = await d.ShellAsync("ls", new[] { "sdcard/pictures/" });
+
 		Console.WriteLine(bytes);
 		Console.WriteLine(d.IsAlive);
-		
-		var async = await d.ShellAsync("echo hi");
-		Console.WriteLine(async);
+
+		await h.RunAsync();
 	}
 
 	private static void KillAdb()

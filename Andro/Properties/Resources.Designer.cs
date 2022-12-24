@@ -61,11 +61,47 @@ namespace Andro.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to adb.
+        /// </summary>
+        internal static string Adb {
+            get {
+                return ResourceManager.GetString("Adb", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to host:devices.
         /// </summary>
         internal static string Cmd_Devices {
             get {
                 return ResourceManager.GetString("Cmd_Devices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to host:transport-any.
+        /// </summary>
+        internal static string Cmd_HostTransport_Any {
+            get {
+                return ResourceManager.GetString("Cmd_HostTransport_Any", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to shell:.
+        /// </summary>
+        internal static string Cmd_Shell {
+            get {
+                return ResourceManager.GetString("Cmd_Shell", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to host:track-devices.
+        /// </summary>
+        internal static string Cmd_TrackDevices {
+            get {
+                return ResourceManager.GetString("Cmd_TrackDevices", resourceCulture);
             }
         }
         
@@ -102,6 +138,51 @@ namespace Andro.Properties {
         internal static string NameShortcut {
             get {
                 return ResourceManager.GetString("NameShortcut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro.
+        /// </summary>
+        internal static string Reg_Shell {
+            get {
+                return ResourceManager.GetString("Reg_Shell", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\First.
+        /// </summary>
+        internal static string Reg_Shell_First {
+            get {
+                return ResourceManager.GetString("Reg_Shell_First", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\First\command.
+        /// </summary>
+        internal static string Reg_Shell_First_Cmd {
+            get {
+                return ResourceManager.GetString("Reg_Shell_First_Cmd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\Main.
+        /// </summary>
+        internal static string Reg_Shell_Main {
+            get {
+                return ResourceManager.GetString("Reg_Shell_Main", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\Main\command.
+        /// </summary>
+        internal static string Reg_Shell_Main_Cmd {
+            get {
+                return ResourceManager.GetString("Reg_Shell_Main_Cmd", resourceCulture);
             }
         }
     }

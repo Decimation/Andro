@@ -10,15 +10,7 @@ namespace Andro.App;
 public static class AppIntegration
 {
 	static AppIntegration() { }
-
-	private const string REG_SHELL = @"SOFTWARE\Classes\*\shell\Andro";
-
-	private const string REG_SHELL_MAIN     = @"SOFTWARE\Classes\*\shell\Andro\shell\Main";
-	private const string REG_SHELL_MAIN_CMD = @"SOFTWARE\Classes\*\shell\Andro\shell\Main\command";
-
-	private const string REG_SHELL_FIRST     = @"SOFTWARE\Classes\*\shell\Andro\shell\First";
-	private const string REG_SHELL_FIRST_CMD = @"SOFTWARE\Classes\*\shell\Andro\shell\First\command";
-
+	
 	/*
 	 * HKEY_CLASSES_ROOT is an alias, a merging, of two other locations:
 	 *		HKEY_CURRENT_USER\Software\Classes
@@ -33,7 +25,7 @@ public static class AppIntegration
 
 	public static bool? HandleContextMenu(bool? b = null)
 	{
-		b ??= Registry.CurrentUser.OpenSubKey(REG_SHELL) == null;
+		b ??= Registry.CurrentUser.OpenSubKey(Resources.Reg_Shell) == null;
 
 		if (b.Value) {
 			RegistryKey shell    = null;
@@ -48,7 +40,7 @@ public static class AppIntegration
 
 			try {
 
-				shell = Registry.CurrentUser.CreateSubKey(REG_SHELL);
+				shell = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell);
 
 				if (shell != null) {
 					shell.SetValue("MUIVerb", Resources.Name);
@@ -56,20 +48,20 @@ public static class AppIntegration
 					shell.SetValue("subcommands", string.Empty);
 				}
 
-				main = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN);
+				main = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_Main);
 
 				if (main != null) {
 					main.SetValue(null, "Main action");
 					main.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
 				}
 
-				mainCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_MAIN_CMD);
+				mainCmd = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_Main_Cmd);
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
 
-				first = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST);
+				first = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_First);
 				first?.SetValue(null, "sdcard/");
 
-				firstCmd = Registry.CurrentUser.CreateSubKey(REG_SHELL_FIRST_CMD);
+				firstCmd = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_First_Cmd);
 				firstCmd?.SetValue(null, $"\"{fullPath}\" {Program.PUSH} \"%1\" sdcard/");
 				return true;
 
@@ -87,11 +79,11 @@ public static class AppIntegration
 
 		}
 		else {
-			var shell = Registry.CurrentUser.OpenSubKey(REG_SHELL);
+			var shell = Registry.CurrentUser.OpenSubKey(Resources.Reg_Shell);
 
 			if (shell != null) {
 				shell.Close();
-				Registry.CurrentUser.DeleteSubKeyTree(REG_SHELL);
+				Registry.CurrentUser.DeleteSubKeyTree(Resources.Reg_Shell);
 				return false;
 			}
 

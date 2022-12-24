@@ -55,28 +55,29 @@ using Novus.Utilities;
 
 namespace Andro.Android;
 
-public enum AdbConnectionMode
-{
-	USB,
-	TCPIP,
-	UNKNOWN
-}
-
 public class AdbDevice : IDisposable
 {
+	#region
+
 	public const int SZ_LEN = sizeof(uint);
+
+	public const string HOST_DEFAULT = "localhost";
+
+	public const int PORT_DEFAULT = 5037;
+
+	#endregion
 
 	public StreamWriter Writer { get; }
 
 	public StreamReader Reader { get; }
 
-	public NetworkStream NetworkStream { get; private set; }
+	public NetworkStream NetworkStream { get; }
 
-	public TcpClient Tcp { get; private set; }
+	public TcpClient Tcp { get; }
 
 	public bool IsAlive => Tcp.Connected;
 
-	public AdbDevice(string host = "localhost", int port = 5037)
+	public AdbDevice(string host = HOST_DEFAULT, int port = PORT_DEFAULT)
 	{
 		Tcp = new TcpClient(host, port);
 
@@ -86,30 +87,28 @@ public class AdbDevice : IDisposable
 		Reader = new StreamReader(NetworkStream);
 
 		Writer.AutoFlush = true;
+
+		/*var sock = new Socket(SocketType.Stream, ProtocolType.Tcp) { };
+		await sock.ConnectAsync("localhost", 5037);*/
 	}
 
 	public async Task SendAsync(string s, CancellationToken? t = null)
 	{
 		t ??= CancellationToken.None;
-		string s2 = GetPayload(s, out byte[] rg, out var rg2);
-		await NetworkStream.WriteAsync(rg2, t.Value);
-		await NetworkStream.FlushAsync(t.Value);
+		string s2 = AdbHelper.GetPayload(s, out byte[] rg, out var rg2);
+
+		// await NetworkStream.WriteAsync(rg2, t.Value);
+		// await NetworkStream.FlushAsync(t.Value);
+
+		await Tcp.Client.SendAsync(rg2, t.Value);
 
 		return;
-	}
-
-	private static string GetPayload(string s, out byte[] rg, out byte[] rg2)
-	{
-		rg = Encoding.UTF8.GetBytes(s);
-		var cm = $"{rg.Length:x4}{s}";
-		rg2 = Encoding.UTF8.GetBytes(cm);
-		return cm;
 	}
 
 	public async Task<string> ReadStringAsync()
 	{
 		var l  = await ReadStringAsync(SZ_LEN);
-		var l2 = int.Parse(l, NumberStyles.HexNumber);
+		var l2 = Int32.Parse(l, NumberStyles.HexNumber);
 		return await ReadStringAsync(l2);
 
 	}
@@ -117,7 +116,9 @@ public class AdbDevice : IDisposable
 	public async Task<string> ReadStringAsync(int l)
 	{
 		var buf = new byte[l];
-		var l2  = await NetworkStream.ReadAsync(buf);
+		// var l2  = await NetworkStream.ReadAsync(buf);
+
+		var l2 = await Tcp.Client.ReceiveAsync(buf);
 
 		var s = Encoding.UTF8.GetString(buf);
 
@@ -129,7 +130,15 @@ public class AdbDevice : IDisposable
 	{
 		// NOTE: host:devices closes connection after
 		await SendAsync(Resources.Cmd_Devices);
-		await Verify();
+		await VerifyAsync();
+		var s = await ReadStringAsync();
+		return s;
+	}
+
+	public async ValueTask<string> TrackDevicesAsync()
+	{
+		await SendAsync(Resources.Cmd_TrackDevices);
+		await VerifyAsync();
 		var s = await ReadStringAsync();
 		return s;
 	}
@@ -141,7 +150,7 @@ public class AdbDevice : IDisposable
 		return await ReadStringAsync(SZ_LEN);
 	}
 
-	public async Task<string> Verify(Action<string> f = null)
+	public async ValueTask<bool?> VerifyAsync(Predicate<string> f = null)
 	{
 		var res = await ReadStringAsync(SZ_LEN);
 
@@ -149,39 +158,41 @@ public class AdbDevice : IDisposable
 
 		switch (res) {
 			case "OKAY":
-				break;
+				return true;
 			default:
-				f?.Invoke(res);
 				/*msg = await ReadStringAsync();
 
 				if (throws) {
 					throw new AdbException(msg);
 				}*/
+				return f?.Invoke(res);
 
 				break;
 		}
 
-		return msg;
+		return null;
 	}
 
-	public async Task<string> ShellAsync(string cmd, IEnumerable<string> args = null)
+	public async Task ConnectTransport()
+	{
+		await SendAsync(Resources.Cmd_HostTransport_Any);
+		await VerifyAsync();
+	}
+
+	public async Task<string> ShellAsync(string cmd, [CanBeNull] IEnumerable<string> args = null)
 	{
 		args ??= Enumerable.Empty<string>();
-		var cmd2 = $"{cmd} {String.Join(' ', args.Select(Escape))}";
+		var cmd2 = $"{cmd} {String.Join(' ', args.Select(AdbHelper.Escape))}";
 		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
 
-		await SendAsync($"shell:{cmd2}");
-		await Verify();
-		
+		await SendAsync($"{R.Cmd_Shell}{cmd2}");
+		await VerifyAsync();
+
 		// var l = await Reader.ReadLineAsync();
 		// return l;
+
 		var output = await Reader.ReadToEndAsync();
 		return output;
-	}
-
-	public static string Escape(string e)
-	{
-		return e.Replace(" ", "' '");
 	}
 
 	public void Dispose()
