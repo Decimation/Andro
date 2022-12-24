@@ -8,6 +8,8 @@ using Kantan.Text;
 #nullable disable
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -15,6 +17,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Kantan.Collections;
@@ -29,6 +33,7 @@ using Novus.Utilities;
 // ReSharper disable UnusedMember.Global
 #pragma warning disable IDE0079
 
+/*
 #pragma warning disable HAA0601 // Value type to reference type conversion causing boxing allocation
 #pragma warning disable HAA0602 // Delegate on struct instance caused a boxing allocation
 #pragma warning disable HAA0603 // Delegate allocation from a method group
@@ -45,7 +50,7 @@ using Novus.Utilities;
 #pragma warning disable HAA0302 // Display class allocation to capture closure
 #pragma warning disable HAA0303 // Lambda or anonymous method in a generic method allocates a delegate instance
 
-#pragma warning disable HAA0101
+#pragma warning disable HAA0101*/
 
 namespace Andro.Android;
 
@@ -58,14 +63,17 @@ public enum AdbConnectionMode
 
 public class AdbDevice : IDisposable
 {
-	private const int          SZ_LEN = sizeof(uint);
-	private       StreamWriter Writer { get; }
+	public const int SZ_LEN = sizeof(uint);
 
-	private StreamReader Reader { get; }
+	public StreamWriter Writer { get; }
+
+	public StreamReader Reader { get; }
 
 	public NetworkStream NetworkStream { get; private set; }
 
 	public TcpClient Tcp { get; private set; }
+
+	public bool IsAlive => Tcp.Connected;
 
 	public AdbDevice()
 	{
@@ -79,18 +87,22 @@ public class AdbDevice : IDisposable
 		Writer.AutoFlush = true;
 	}
 
-	public async Task Send(string s, CancellationToken? t = default)
+	public async Task Send(string s, CancellationToken? t = null)
 	{
 		t ??= CancellationToken.None;
-
-		var rg  = Encoding.UTF8.GetBytes(s);
-		var cm  = $"{rg.Length:x4}{s}";
-		var cm2 = Encoding.UTF8.GetBytes(cm);
-
+		string cm = GetPayload(s, out byte[] rg, out var cm2);
 		await NetworkStream.WriteAsync(cm2, t.Value);
 		await NetworkStream.FlushAsync(t.Value);
 
 		return;
+	}
+
+	private static string GetPayload(string s, out byte[] rg, out byte[] rg2)
+	{
+		rg = Encoding.UTF8.GetBytes(s);
+		var cm = $"{rg.Length:x4}{s}";
+		rg2 = Encoding.UTF8.GetBytes(cm);
+		return cm;
 	}
 
 	public async Task<string> ReadStringAsync()
@@ -101,7 +113,7 @@ public class AdbDevice : IDisposable
 
 	}
 
-	public async Task<string> Verify(bool throws = true)
+	public async Task<string> Verify(bool throws = false)
 	{
 		var res = await ReadStringAsync(SZ_LEN);
 
@@ -111,11 +123,12 @@ public class AdbDevice : IDisposable
 			case "OKAY":
 				break;
 			default:
-				msg = await ReadStringAsync();
+				
+				/*msg = await ReadStringAsync();
 
 				if (throws) {
 					throw new AdbException(msg);
-				}
+				}*/
 
 				break;
 		}
@@ -126,15 +139,13 @@ public class AdbDevice : IDisposable
 	public async Task<string> ReadStringAsync(int l)
 	{
 		var buf = new byte[l];
-		var l2 = await NetworkStream.ReadAsync(buf);
+		var l2  = await NetworkStream.ReadAsync(buf);
 		// await NetworkStream.ReadFullyAsync(buf);
 
-		var s = Encoding.UTF8.GetString(buf, 0, l);
+		var s = Encoding.UTF8.GetString(buf);
 
 		return s;
 	}
-
-	#region IDisposable
 
 	public void Dispose()
 	{
@@ -143,6 +154,4 @@ public class AdbDevice : IDisposable
 		Writer.Dispose();
 		NetworkStream.Dispose();
 	}
-
-	#endregion
 }

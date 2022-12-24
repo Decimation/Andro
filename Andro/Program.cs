@@ -41,7 +41,6 @@ public static class Program
 	public const string OP_RM  = "rm";
 
 	private const char   CTRL_Z = '\x1A';
-	private const string EXIT   = "exit";
 
 	public static async Task Main(string[] args)
 	{
@@ -92,24 +91,34 @@ public static class Program
 		Console.WriteLine(await nsr.ReadAsync(rg));
 		Console.WriteLine(Encoding.ASCII.GetString(rg));*/
 
-		var d = new AdbDevice();
-		await d.Send("host:version");
 		string s = null;
-		Console.WriteLine(s = await d.ReadStringAsync(4));
+		
+		var d = new AdbDevice();
 
+		// NOTE: host:devices closes connection after
 		await d.Send("host:devices");
-		Console.WriteLine(s = await d.ReadStringAsync(4));
+		await d.Verify();
 
-		/*await d.Send($"host:transport:{s}");
-		Console.WriteLine(s = await d.ReadStringAsync());*/
+		Console.WriteLine(s = await d.ReadStringAsync());
+		Console.WriteLine(d.IsAlive);
+		d.Dispose();
+		d = new AdbDevice();
 
-		await d.Send($"sync:");
-		await d.Send("OKAY");
-		Console.WriteLine(s = await d.ReadStringAsync(4));
-		Console.WriteLine(s = await d.ReadStringAsync(29));
+		/*
+		// NOTE: no verification
+		await d.Send("host:version");
+		Console.WriteLine(s = await d.ReadStringAsync(AdbDevice.SZ_LEN));*/
 
-		// await d.Verify(false);
+		await d.Send($"host:transport-any");
+		await d.Verify(false);
+
+		await d.Send($"shell:ls");
+		await d.Verify(false);
+		Console.WriteLine(s = await d.Reader.ReadToEndAsync());
+
 	}
+
+	private const string EXIT   = "exit";
 
 	private static void KillAdb()
 	{
