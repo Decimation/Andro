@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
-using Andro.Properties;
+using Andro.Lib.Properties;
 using Microsoft.Win32;
 using Novus.OS;
 

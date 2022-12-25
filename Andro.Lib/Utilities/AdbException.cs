@@ -1,8 +1,7 @@
 ﻿
-
 // ReSharper disable UnusedMember.Global
 #nullable enable
-namespace Andro.Utilities;
+namespace Andro.Lib.Utilities;
 
 public sealed class AdbException : Exception
 {

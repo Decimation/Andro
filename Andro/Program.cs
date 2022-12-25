@@ -1,17 +1,9 @@
-﻿using System.Buffers;
-using System.Diagnostics;
-using System.Drawing;
-using System.Net;
-using System.Net.Sockets;
+﻿using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Text;
-using Andro.Android;
+using Andro.Lib.Android;
 using Andro.App;
-using Andro.Properties;
-using Kantan.Text;
+using Andro.Lib.Properties;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Novus.Memory;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -49,21 +41,18 @@ public static class Program
 	{
 #if TEST
 		if (!args.Any()) {
-			args = new[] { APP_SENDTO, OP_ADD, APP_CTX, OP_ADD };
 
-			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat", @"C:\users\deci\downloads" };
-			// args = new[] { PULL_ALL, "sdcard/dcim/snapchat" };
 		}
 #endif
 
 #if DEBUG
-		// KillAdb();
+
 #endif
 
 		using IHost h = Host.CreateDefaultBuilder()
 			.ConfigureHostOptions((a, b) =>
 			{
-				a.HostingEnvironment.ApplicationName = R.Name;
+				a.HostingEnvironment.ApplicationName = Resources.Name;
 			})
 			.ConfigureLogging((a, b) => { })
 			.Build();
@@ -86,6 +75,7 @@ public static class Program
 
 		s = await d.TrackDevicesAsync();
 		Console.WriteLine(s);
+
 		// d.Dispose();
 		// d = new AdbDevice();
 
@@ -96,20 +86,16 @@ public static class Program
 		await d.Tcp.Client.ReceiveAsync(buffer.Memory);
 		Console.WriteLine(Encoding.UTF8.GetString(buffer.Memory.Span));*/
 
-		var bytes = await d.ShellAsync("ls", new[] { "sdcard/pictures/" });
-
-		Console.WriteLine(bytes);
+		// var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
+		// Console.WriteLine(bytes);
 		Console.WriteLine(d.IsAlive);
-
+		await d.SendAsync("sync:list sdcard/pictures/");
+		Console.WriteLine(d.NetworkStream.DataAvailable);
+		// await d.VerifyAsync();
+		Console.WriteLine(await d.ReadStringAsync(4));
+		Console.WriteLine(await d.ReadInt());
+		Console.WriteLine(await d.ReadStringAsync());
 		await h.RunAsync();
-	}
-
-	private static void KillAdb()
-	{
-		foreach (var v in Process.GetProcessesByName("adb")) {
-			v.Kill(true);
-			Console.WriteLine($"Killed {v.Id}");
-		}
 	}
 
 	/*[CBN]

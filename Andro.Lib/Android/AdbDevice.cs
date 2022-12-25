@@ -1,33 +1,11 @@
-﻿using System.Collections.Concurrent;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Andro.Utilities;
-using JetBrains.Annotations;
-using Kantan.Numeric;
-using Kantan.Text;
-#nullable disable
-using System;
-using System.Buffers;
+﻿#nullable disable
 using System.Buffers.Binary;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Sockets;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using Andro.Properties;
-using Kantan.Collections;
-using Novus.Win32;
-using Kantan.Diagnostics;
-using Kantan.Utilities;
-using Novus.OS;
-using Novus.Utilities;
+using Andro.Lib.Properties;
+using JetBrains.Annotations;
 
 // ReSharper disable InconsistentNaming
 
@@ -53,7 +31,7 @@ using Novus.Utilities;
 
 #pragma warning disable HAA0101*/
 
-namespace Andro.Android;
+namespace Andro.Lib.Android;
 
 public class AdbDevice : IDisposable
 {
@@ -105,6 +83,14 @@ public class AdbDevice : IDisposable
 		return;
 	}
 
+	public async Task<int> ReadInt()
+	{
+		var buffers = new byte[sizeof(int)];
+		var s       = await Tcp.Client.ReceiveAsync(buffers);
+		var val     = BinaryPrimitives.ReverseEndianness(BitConverter.ToInt32(buffers));
+		return val;
+	}
+
 	public async Task<string> ReadStringAsync()
 	{
 		var l  = await ReadStringAsync(SZ_LEN);
@@ -129,7 +115,7 @@ public class AdbDevice : IDisposable
 	public async ValueTask<string> GetDevicesAsync()
 	{
 		// NOTE: host:devices closes connection after
-		await SendAsync(Resources.Cmd_Devices);
+		await SendAsync(R.Cmd_Devices);
 		await VerifyAsync();
 		var s = await ReadStringAsync();
 		return s;
