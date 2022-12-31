@@ -5,7 +5,9 @@ VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Andro", "Andro\Andro.csproj", "{60DD2FB1-D77F-445E-A922-EF74E076A839}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Andro.Lib", "Andro.Lib\Andro.Lib.csproj", "{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Andro.Lib", "Andro.Lib\Andro.Lib.csproj", "{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{1E815412-9E3E-434F-932B-8D50CD144569}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +28,12 @@ Global
 		{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}.Test|Any CPU.ActiveCfg = Debug|Any CPU
 		{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{1E815412-9E3E-434F-932B-8D50CD144569}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E815412-9E3E-434F-932B-8D50CD144569}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E815412-9E3E-434F-932B-8D50CD144569}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E815412-9E3E-434F-932B-8D50CD144569}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E815412-9E3E-434F-932B-8D50CD144569}.Test|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E815412-9E3E-434F-932B-8D50CD144569}.Test|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

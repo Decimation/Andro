@@ -78,14 +78,6 @@ public static class Program
 
 		string s = null;
 
-		// var d = new AdbTransport();
-
-		// s = await d.TrackDevicesAsync();
-		// s = await d.TrackDevicesAsync();
-		// Console.WriteLine(s);
-		// await d.ConnectTransport();
-		// await d.VerifyAsync();
-
 		var d1 = new AdbConnection();
 
 		var                 devices    = await d1.GetDevicesAsync();
@@ -111,134 +103,9 @@ public static class Program
 		Console.WriteLine(d.IsAlive);
 		// await d.SendAsync("sync:list sdcard/pictures/");
 		Console.WriteLine(d.NetworkStream.DataAvailable);*/
-	
+		Console.WriteLine(await dev.GetState());
 		await h.RunAsync();
 	}
-
-	/*[CBN]
-	private static async Task<object> ReadArguments(string[] args)
-	{
-		if (args == null || !args.Any()) {
-			return null;
-		}
-
-#if DEBUG
-		Console.WriteLine($">> {args.QuickJoin()}".AddColor(Color.Beige));
-#endif
-		Trace.WriteLine($">> {args.QuickJoin()}");
-
-		// var argEnum = args.GetEnumerator().Cast<string>();
-
-		for (int i = 0; i < args.Length; i++) {
-
-			var current = args[i];
-
-			switch (current) {
-				case "sh":
-					string input = null;
-
-					var ps = AdbDevice.GetShell(AdbDevice.ADB_SHELL);
-
-					while ((input = Console.ReadLine()) != null) {
-						input = input.Trim();
-
-						ps.StandardInput.WriteLine(input);
-						ps.StandardInput.Flush();
-						Trace.WriteLine($">>{input}");
-						string b = null;
-
-						ps.ErrorDataReceived += (sender, eventArgs) =>
-						{
-							Console.Error.WriteLine(eventArgs.Data);
-						};
-
-						ps.OutputDataReceived += (sender, eventArgs) =>
-						{
-							Console.WriteLine(eventArgs.Data);
-						};
-
-						if (input == "exit") {
-							break;
-						}
-					}
-
-					break;
-				case "gi":
-					// return _device.GetItems(args[++i..]);
-					var c = AdbCommand.find.Build(args2: args[++i..]);
-					return c;
-				case EXIT:
-					goto default;
-				case APP_SENDTO:
-
-					return HandleOption(args[++i], AppIntegration.HandleSendToMenu);
-				case APP_CTX:
-
-					return HandleOption(args[++i], AppIntegration.HandleContextMenu);
-				/*case PUSH_ALL:
-
-					var localFiles = args[++i..];
-
-					return _device.PushAll(localFiles);
-				case PULL_ALL:
-
-					string remFolder = args[++i];
-
-					var ssb = args.TryIndex(++i, out var destFolder);
-					destFolder ??= Environment.CurrentDirectory;
-					Console.WriteLine($"{remFolder} {Strings.Constants.ARROW_RIGHT} {destFolder}");
-					return _device.PullAll(remFolder, destFolder);#1#
-				case FSIZE:
-					string file = args[++i];
-					return _device.GetFileSize(file);
-				case DSIZE:
-					// string folder = args[++i];
-					// return _device.GetFolderSize(folder);
-					return _device.GetFolderSize(args[++i..].QuickJoin(" "));
-				/*case PUSH_FOLDER:
-					string dir  = args[++i];
-					string rdir = args[++i];
-
-					i++;
-					return _device.PushFolder(dir, rdir);#1#
-				case PUSH:
-					string localSrcFile = args[++i];
-					string remoteDest   = args[++i];
-
-					i++;
-
-					var pushTask = _device.PushAsync(localSrcFile, remoteDest);
-
-					ThreadPool.QueueUserWorkItem(c =>
-					{
-						do {
-							if (pushTask.IsCompleted) {
-								break;
-							}
-
-							for (int i = 0; i <= 3; i++) {
-								Console.Write($"\r{new string('.', i)}");
-
-								if (pushTask.IsCompleted) {
-									break;
-								}
-
-								Thread.Sleep(i * 100);
-							}
-						} while (!pushTask.IsCompleted);
-					});
-					return await pushTask;
-
-				case { } when current.Contains(CTRL_Z):
-				default:
-
-					break;
-			}
-		}
-
-		return null;
-	}
-	*/
 
 	private static bool? HandleOption(string op, Func<bool?, bool?> f)
 	{

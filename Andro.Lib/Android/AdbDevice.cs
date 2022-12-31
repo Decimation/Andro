@@ -1,9 +1,11 @@
-﻿using Novus.Streams;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Reflection.PortableExecutable;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Andro")]
+[assembly: InternalsVisibleTo("UnitTest")]
 namespace Andro.Lib.Android;
 
 public class AdbDevice
@@ -32,20 +34,30 @@ public class AdbDevice
 		Rescue
 	}
 
-	private static State ConvertState(String type)
+	internal static State ConvertState(String type)
 	{
-		switch (type) {
-			case "device":       return State.Device;
-			case "offline":      return State.Offline;
-			case "bootloader":   return State.BootLoader;
-			case "recovery":     return State.Recovery;
-			case "unauthorized": return State.Unauthorized;
-			case "authorizing":  return State.Authorizing;
-			case "connecting":   return State.Connecting;
-			case "sideload":     return State.Sideload;
-			case "rescue":       return State.Rescue;
-			default:             return State.Unknown;
+		if (string.IsNullOrWhiteSpace(type)) {
+			return State.Unknown;
 		}
+
+		var s = Enum.GetValues<State>()
+			.FirstOrDefault(r => type.Equals(r.ToString(), StringComparison.InvariantCultureIgnoreCase));
+
+		return s;
+
+		/*return type switch
+		{
+			"device"       => State.Device,
+			"offline"      => State.Offline,
+			"bootloader"   => State.BootLoader,
+			"recovery"     => State.Recovery,
+			"unauthorized" => State.Unauthorized,
+			"authorizing"  => State.Authorizing,
+			"connecting"   => State.Connecting,
+			"sideload"     => State.Sideload,
+			"rescue"       => State.Rescue,
+			_              => State.Unknown
+		};*/
 	}
 
 	public async Task<Transport> GetTransport()
@@ -77,7 +89,7 @@ public class AdbDevice
 		await t.VerifyAsync();
 	}
 
-	public async Task<AdbFilter> ShellAsync(string cmd, [CanBeNull] IEnumerable<string> args = null)
+	public async Task<AdbFilterInputStream> ShellAsync(string cmd, IEnumerable<string>? args = null)
 	{
 		args ??= Enumerable.Empty<string>();
 		var cmd2 = $"{cmd} {String.Join(' ', args.Select(AdbHelper.Escape))}";
@@ -93,54 +105,7 @@ public class AdbDevice
 		// return output;
 		var t = await GetTransport();
 		await SendAsync(t, $"{R.Cmd_Shell}{cmd2}");
-		return new AdbFilter(t.NetworkStream);
-	}
-
-	public class AdbFilter : FilterInputStream
-	{
-		public AdbFilter(InputStream s) : base(s) { }
-		
-		public new Stream BaseStream => base.BaseStream;
-		
-		public override int Read()
-		{
-			var b1 = base.Read();
-
-			if (b1 == 0x0D) {
-				base.Mark(1);
-				var b2 = base.Read();
-
-				if (b2 == 0x0A) {
-					return b2;
-				}
-
-				base.Reset();
-			}
-
-			return b1;
-		}
-
-		public override int Read(byte[] buffer) => Read(buffer, 0, buffer.Length);
-
-		public override int Read(byte[] buffer, int offset, int length)
-		{
-			int n = 0;
-
-			for (int i = 0; i < length; i++) {
-				int b = Read();
-				if (b == -1) return n == 0 ? -1 : n;
-				buffer[offset + n] = (byte) b;
-				n++;
-
-				// Return as soon as no more data is available (and at least one byte was read)
-				if (Available() <= 0) {
-					//todo?
-					return n;
-				}
-			}
-
-			return n;
-		}
+		return new AdbFilterInputStream(t.NetworkStream);
 	}
 
 	public override string ToString()

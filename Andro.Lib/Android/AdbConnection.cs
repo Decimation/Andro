@@ -30,7 +30,7 @@ public class AdbConnection : ITransportFactory
 
 	public async Task<AdbDevice[]> GetDevicesAsync()
 	{
-		using var t = await GetTransport();
+		var t = await GetTransport();
 		await t.SendAsync("host:devices");
 		await t.VerifyAsync();
 		var b = await t.ReadStringAsync();

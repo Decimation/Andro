@@ -42,6 +42,8 @@ public class Transport : IDisposable
 
 	#endregion
 
+	#region
+
 	public StreamWriter Writer { get; }
 
 	public StreamReader Reader { get; }
@@ -51,6 +53,8 @@ public class Transport : IDisposable
 	public TcpClient Tcp { get; }
 
 	public bool IsAlive => Tcp.Connected;
+
+	#endregion
 
 	public Transport(string host = AdbConnection.DEFAULT_HOST, int port = AdbConnection.DEFAULT_PORT)
 	{
@@ -80,6 +84,13 @@ public class Transport : IDisposable
 		return;
 	}
 
+	public async Task<SyncTransport> startSync()
+	{
+		await SendAsync("sync:");
+		await VerifyAsync();
+		return new SyncTransport(Reader, Writer);
+	}
+
 	public async Task<int> ReadInt()
 	{
 		var buffers = new byte[sizeof(int)];
@@ -103,7 +114,7 @@ public class Transport : IDisposable
 
 		var l2 = await Tcp.Client.ReceiveAsync(buf);
 
-		var s = Encoding.UTF8.GetString(buf);
+		var s = AdbHelper.Encoding.GetString(buf);
 
 		return s;
 	}
