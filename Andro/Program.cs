@@ -4,6 +4,7 @@ using Andro.Lib.Android;
 using Andro.App;
 using Andro.Lib.Properties;
 using Microsoft.Extensions.Hosting;
+using Novus.Streams;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -17,7 +18,13 @@ using Microsoft.Extensions.Hosting;
 namespace Andro;
 
 /*
- *
+https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/JadbDevice.java#L60
+https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/JadbConnection.java
+https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/Transport.java
+https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/SyncTransport.java
+https://github.com/vidstige/jadb/tree/master/src/se/vidstige/jadb
+https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInputStream.java
+
  */
 public static class Program
 {
@@ -81,10 +88,13 @@ public static class Program
 
 		var d1 = new AdbConnection();
 
-		foreach (var v in await d1.get()) {
-			Console.WriteLine(v);
-		}
+		var                 devices    = await d1.GetDevicesAsync();
+		var                 dev        = devices.First();
+		var o = (await dev.ShellAsync("echo butt"));
 
+		var nr = new StreamReader(o);
+		Console.WriteLine(await nr.ReadToEndAsync());
+		
 		// d.Dispose();
 		// d = new AdbDevice();
 

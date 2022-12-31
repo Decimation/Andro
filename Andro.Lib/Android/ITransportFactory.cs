@@ -2,5 +2,5 @@
 
 public interface ITransportFactory
 {
-	public Task<AdbTransport> GetTransport();
+	public Task<Transport> GetTransport();
 }

@@ -34,7 +34,7 @@ using JetBrains.Annotations;
 
 namespace Andro.Lib.Android;
 
-public class AdbTransport : IDisposable
+public class Transport : IDisposable
 {
 	#region
 
@@ -52,7 +52,7 @@ public class AdbTransport : IDisposable
 
 	public bool IsAlive => Tcp.Connected;
 
-	public AdbTransport(string host = AdbConnection.DEFAULT_HOST, int port = AdbConnection.DEFAULT_PORT)
+	public Transport(string host = AdbConnection.DEFAULT_HOST, int port = AdbConnection.DEFAULT_PORT)
 	{
 		Tcp = new TcpClient(host, port);
 
@@ -168,23 +168,6 @@ public class AdbTransport : IDisposable
 			Message = msg,
 			Ok      = b
 		};
-		;
-	}
-
-	public async Task<string> ShellAsync(string cmd, [CanBeNull] IEnumerable<string> args = null)
-	{
-		args ??= Enumerable.Empty<string>();
-		var cmd2 = $"{cmd} {String.Join(' ', args.Select(AdbHelper.Escape))}";
-		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
-
-		await SendAsync($"{R.Cmd_Shell}{cmd2}");
-		await VerifyAsync();
-
-		// var l = await Reader.ReadLineAsync();
-		// return l;
-
-		var output = await Reader.ReadToEndAsync();
-		return output;
 	}
 
 	public void Dispose()

@@ -12,6 +12,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Kantan">
+      <HintPath>..\..\Kantan\Kantan\bin\Release\net7.0\Kantan.dll</HintPath>
+    </Reference>
+    <Reference Include="Kantan.Net">
+      <HintPath>..\..\Kantan\Kantan.Net\bin\Release\net7.0\Kantan.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Novus">
+      <HintPath>..\..\Novus\Novus\bin\Release\net7.0\Novus.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>

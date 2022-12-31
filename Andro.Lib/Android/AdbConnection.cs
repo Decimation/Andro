@@ -19,35 +19,35 @@ public class AdbConnection : ITransportFactory
 
 	public AdbConnection() : this(DEFAULT_HOST, DEFAULT_PORT) { }
 
-	public async Task<AdbTransport> GetTransport()
+	public async Task<Transport> GetTransport()
 	{
-		return new AdbTransport(Host, Port);
+		return new Transport(Host, Port);
 	}
 
 	public const string DEFAULT_HOST = "localhost";
 
 	public const int DEFAULT_PORT = 5037;
 
-	public async Task<AdbDevice[]> get()
+	public async Task<AdbDevice[]> GetDevicesAsync()
 	{
 		using var t = await GetTransport();
 		await t.SendAsync("host:devices");
 		await t.VerifyAsync();
 		var b = await t.ReadStringAsync();
-		return parse(b);
+		return ParseDevices(b);
 	}
 
-	internal AdbDevice[] parse(string b)
+	internal AdbDevice[] ParseDevices(string body)
 	{
-		var l       = b.Split(Environment.NewLine);
-		var devices = new AdbDevice[l.Length];
+		var lines       = body.Split(Environment.NewLine);
+		var devices = new AdbDevice[lines.Length];
 		int i       = 0;
 
-		foreach (string s in l) {
-			var p = s.Split('\t');
+		foreach (string s in lines) {
+			var parts = s.Split('\t');
 
-			if (p.Length > 1) {
-				devices[i++] = new AdbDevice(p[0], this);
+			if (parts.Length > 1) {
+				devices[i++] = new AdbDevice(parts[0], this);
 			}
 		}
 
