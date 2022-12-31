@@ -71,13 +71,19 @@ public static class Program
 
 		string s = null;
 
-		var d = new AdbDevice();
+		// var d = new AdbTransport();
 
 		// s = await d.TrackDevicesAsync();
 		// s = await d.TrackDevicesAsync();
 		// Console.WriteLine(s);
-		await d.ConnectTransport();
+		// await d.ConnectTransport();
 		// await d.VerifyAsync();
+
+		var d1 = new AdbConnection();
+
+		foreach (var v in await d1.get()) {
+			Console.WriteLine(v);
+		}
 
 		// d.Dispose();
 		// d = new AdbDevice();
@@ -90,11 +96,11 @@ public static class Program
 		Console.WriteLine(Encoding.UTF8.GetString(buffer.Memory.Span));*/
 		// var bytes = await d.ShellAsync("echo", new[] { "butt"});
 
-		var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
+		/*var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
 		Console.WriteLine(bytes);
 		Console.WriteLine(d.IsAlive);
 		// await d.SendAsync("sync:list sdcard/pictures/");
-		Console.WriteLine(d.NetworkStream.DataAvailable);
+		Console.WriteLine(d.NetworkStream.DataAvailable);*/
 	
 		await h.RunAsync();
 	}
