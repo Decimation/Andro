@@ -2,5 +2,5 @@
 
 public interface ITransportFactory
 {
-	public Task<Transport> GetTransport();
+	public ValueTask<Transport> GetTransport();
 }

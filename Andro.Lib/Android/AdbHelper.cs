@@ -18,4 +18,32 @@ public static class AdbHelper
 	{
 		return e.Replace(" ", "' '");
 	}
+
+	private static readonly AdbDeviceState[] DeviceStatesValues = Enum.GetValues<AdbDeviceState>();
+
+	internal static AdbDeviceState ConvertState(string type)
+	{
+		if (String.IsNullOrWhiteSpace(type)) {
+			return AdbDeviceState.Unknown;
+		}
+
+		var s = DeviceStatesValues.FirstOrDefault(
+			r => type.Equals(r.ToString(), StringComparison.InvariantCultureIgnoreCase));
+
+		return s;
+
+		/*return type switch
+		{
+			"device"       => State.Device,
+			"offline"      => State.Offline,
+			"bootloader"   => State.BootLoader,
+			"recovery"     => State.Recovery,
+			"unauthorized" => State.Unauthorized,
+			"authorizing"  => State.Authorizing,
+			"connecting"   => State.Connecting,
+			"sideload"     => State.Sideload,
+			"rescue"       => State.Rescue,
+			_              => State.Unknown
+		};*/
+	}
 }

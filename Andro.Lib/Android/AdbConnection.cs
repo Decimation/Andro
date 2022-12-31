@@ -19,9 +19,9 @@ public class AdbConnection : ITransportFactory
 
 	public AdbConnection() : this(DEFAULT_HOST, DEFAULT_PORT) { }
 
-	public async Task<Transport> GetTransport()
+	public ValueTask<Transport> GetTransport()
 	{
-		return new Transport(Host, Port);
+		return ValueTask.FromResult(new Transport(Host, Port));
 	}
 
 	public const string DEFAULT_HOST = "localhost";
@@ -39,7 +39,7 @@ public class AdbConnection : ITransportFactory
 
 	internal AdbDevice[] ParseDevices(string body)
 	{
-		var lines       = body.Split(Environment.NewLine);
+		var lines   = body.Split(Environment.NewLine);
 		var devices = new AdbDevice[lines.Length];
 		int i       = 0;
 

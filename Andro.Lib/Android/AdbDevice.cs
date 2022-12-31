@@ -3,12 +3,14 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
+using Andro.Lib.Utilities;
 
 [assembly: InternalsVisibleTo("Andro")]
 [assembly: InternalsVisibleTo("UnitTest")]
+
 namespace Andro.Lib.Android;
 
-public class AdbDevice
+public class AdbDevice : ITransportFactory
 {
 	public string? Serial { get; }
 
@@ -20,47 +22,7 @@ public class AdbDevice
 		m_factory = f;
 	}
 
-	public enum State
-	{
-		Unknown,
-		Offline,
-		Device,
-		Recovery,
-		BootLoader,
-		Unauthorized,
-		Authorizing,
-		Sideload,
-		Connecting,
-		Rescue
-	}
-
-	internal static State ConvertState(String type)
-	{
-		if (string.IsNullOrWhiteSpace(type)) {
-			return State.Unknown;
-		}
-
-		var s = Enum.GetValues<State>()
-			.FirstOrDefault(r => type.Equals(r.ToString(), StringComparison.InvariantCultureIgnoreCase));
-
-		return s;
-
-		/*return type switch
-		{
-			"device"       => State.Device,
-			"offline"      => State.Offline,
-			"bootloader"   => State.BootLoader,
-			"recovery"     => State.Recovery,
-			"unauthorized" => State.Unauthorized,
-			"authorizing"  => State.Authorizing,
-			"connecting"   => State.Connecting,
-			"sideload"     => State.Sideload,
-			"rescue"       => State.Rescue,
-			_              => State.Unknown
-		};*/
-	}
-
-	public async Task<Transport> GetTransport()
+	public async ValueTask<Transport> GetTransport()
 	{
 		var t = await m_factory.GetTransport();
 
@@ -69,18 +31,18 @@ public class AdbDevice
 		}
 		catch (Exception e) {
 			t.Dispose();
-			throw;
+			throw new AdbException(message: null, innerException: e);
 		}
 
 		return t;
 	}
 
-	public async Task<State> GetState()
+	public async Task<AdbDeviceState> GetStateAsync()
 	{
 		using var t = await m_factory.GetTransport();
 
 		await SendAsync(t, Serial == null ? "host:get-state" : $"host-serial:{Serial}:get-state");
-		return ConvertState(await t.ReadStringAsync());
+		return AdbHelper.ConvertState(await t.ReadStringAsync());
 	}
 
 	private async Task SendAsync(Transport t, string c)
@@ -112,4 +74,18 @@ public class AdbDevice
 	{
 		return $"{Serial}";
 	}
+}
+
+public enum AdbDeviceState
+{
+	Unknown,
+	Offline,
+	Device,
+	Recovery,
+	BootLoader,
+	Unauthorized,
+	Authorizing,
+	Sideload,
+	Connecting,
+	Rescue
 }

@@ -14,14 +14,14 @@ public class Tests
 	[Test]
 	public async Task Test2()
 	{
-		Assert.That(AdbDevice.ConvertState(null), Is.EqualTo(AdbDevice.State.Unknown));
+		Assert.That(AdbHelper.ConvertState(null!), Is.EqualTo(AdbDeviceState.Unknown));
 
 		var c = new AdbConnection();
 		var d = await c.GetDevicesAsync();
 		Assert.True(d.Any());
 		var d1 = d.First();
 		TestContext.WriteLine($"{d1.Serial}");
-		Assert.That(await d1.GetState(), Is.EqualTo(AdbDevice.State.Device));
+		Assert.That(await d1.GetStateAsync(), Is.EqualTo(AdbDeviceState.Device));
 	}
 
 	[Test]

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿
+using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
 using Andro.Lib.Properties;
 using Microsoft.Win32;
@@ -25,7 +26,7 @@ public static class AppIntegration
 
 	public static bool? HandleContextMenu(bool? b = null)
 	{
-		b ??= Registry.CurrentUser.OpenSubKey(Resources.Reg_Shell) == null;
+		b ??= Registry.CurrentUser.OpenSubKey(Lib.Properties.Resources.Reg_Shell) == null;
 
 		if (b.Value) {
 			RegistryKey shell    = null;

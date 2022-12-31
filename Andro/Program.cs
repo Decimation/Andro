@@ -1,4 +1,6 @@
-﻿using System.Buffers.Binary;
+﻿global using Resources1 = Andro.Lib.Properties.Resources;
+
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using Andro.Lib.Android;
 using Andro.App;
@@ -28,8 +30,6 @@ https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInput
  */
 public static class Program
 {
-	public const string PULL_ALL    = "/pull-all";
-	public const string PUSH_ALL    = "/push-all";
 	public const string PUSH_FOLDER = "/push-folder";
 	public const string FSIZE       = "/fsize";
 	public const string DSIZE       = "/dsize";
@@ -41,8 +41,7 @@ public static class Program
 	public const string OP_ADD = "add";
 	public const string OP_RM  = "rm";
 
-	private const char   CTRL_Z = '\x1A';
-	private const string EXIT   = "exit";
+	private const char CTRL_Z = '\x1A';
 
 	public static async Task Main(string[] args)
 	{
@@ -59,7 +58,7 @@ public static class Program
 		using IHost h = Host.CreateDefaultBuilder()
 			.ConfigureHostOptions((a, b) =>
 			{
-				a.HostingEnvironment.ApplicationName = Resources.Name;
+				a.HostingEnvironment.ApplicationName = Resources1.Name;
 			})
 			.ConfigureLogging((a, b) => { })
 			.Build();
@@ -70,7 +69,7 @@ public static class Program
 		 * Setup
 		 */
 
-		Console.Title = Resources.Name;
+		Console.Title = Resources1.Name;
 
 		/*
 		 *
@@ -80,13 +79,13 @@ public static class Program
 
 		var d1 = new AdbConnection();
 
-		var                 devices    = await d1.GetDevicesAsync();
-		var                 dev        = devices.First();
-		var o = (await dev.ShellAsync("echo butt"));
+		var devices = await d1.GetDevicesAsync();
+		var dev     = devices.First();
+		var o       = (await dev.ShellAsync("echo butt"));
 
 		var nr = new StreamReader(o);
 		Console.WriteLine(await nr.ReadToEndAsync());
-		
+
 		// d.Dispose();
 		// d = new AdbDevice();
 
@@ -103,27 +102,7 @@ public static class Program
 		Console.WriteLine(d.IsAlive);
 		// await d.SendAsync("sync:list sdcard/pictures/");
 		Console.WriteLine(d.NetworkStream.DataAvailable);*/
-		Console.WriteLine(await dev.GetState());
+		Console.WriteLine(await dev.GetStateAsync());
 		await h.RunAsync();
-	}
-
-	private static bool? HandleOption(string op, Func<bool?, bool?> f)
-	{
-
-		switch (op) {
-			case null:
-				return f(null);
-
-			case OP_ADD:
-				return f(true);
-				break;
-			case OP_RM:
-				return f(false);
-				break;
-		}
-
-		return null;
-
-		// argEnumerator.MoveNext();
 	}
 }
