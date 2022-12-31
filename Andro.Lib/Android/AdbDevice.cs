@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Text;
 using Andro.Lib.Properties;
+using Andro.Lib.Utilities;
 using JetBrains.Annotations;
 
 // ReSharper disable InconsistentNaming
@@ -136,27 +137,48 @@ public class AdbDevice : IDisposable
 		return await ReadStringAsync(SZ_LEN);
 	}
 
-	public async ValueTask<bool?> VerifyAsync(Predicate<string> f = null)
+	public record AdbResponse
+	{
+		public string Message { get; internal init; }
+		public bool?  Ok      { get; internal init; }
+	}
+
+	public async ValueTask<AdbResponse> VerifyAsync(Predicate<string> f = null, bool throws = true)
 	{
 		var res = await ReadStringAsync(SZ_LEN);
 
 		string msg = res;
+		bool?  b   = null;
 
 		switch (res) {
 			case "OKAY":
-				return true;
+				b = true;
+				break;
+			case "FAIL":
+				msg = await ReadStringAsync();
+
+				if (throws) {
+					throw new AdbException(msg);
+				}
+
+				b = false;
+				break;
 			default:
 				/*msg = await ReadStringAsync();
 
 				if (throws) {
 					throw new AdbException(msg);
 				}*/
-				return f?.Invoke(res);
-
+				b = f?.Invoke(res);
 				break;
 		}
 
-		return null;
+		return new AdbResponse()
+		{
+			Message = msg,
+			Ok      = b
+		};
+		;
 	}
 
 	public async Task ConnectTransport()

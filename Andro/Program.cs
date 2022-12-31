@@ -73,8 +73,11 @@ public static class Program
 
 		var d = new AdbDevice();
 
-		s = await d.TrackDevicesAsync();
-		Console.WriteLine(s);
+		// s = await d.TrackDevicesAsync();
+		// s = await d.TrackDevicesAsync();
+		// Console.WriteLine(s);
+		await d.ConnectTransport();
+		// await d.VerifyAsync();
 
 		// d.Dispose();
 		// d = new AdbDevice();
@@ -85,16 +88,14 @@ public static class Program
 		var buffer = MemoryPool<byte>.Shared.Rent(8192);
 		await d.Tcp.Client.ReceiveAsync(buffer.Memory);
 		Console.WriteLine(Encoding.UTF8.GetString(buffer.Memory.Span));*/
+		// var bytes = await d.ShellAsync("echo", new[] { "butt"});
 
-		// var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
-		// Console.WriteLine(bytes);
+		var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
+		Console.WriteLine(bytes);
 		Console.WriteLine(d.IsAlive);
-		await d.SendAsync("sync:list sdcard/pictures/");
+		// await d.SendAsync("sync:list sdcard/pictures/");
 		Console.WriteLine(d.NetworkStream.DataAvailable);
-		// await d.VerifyAsync();
-		Console.WriteLine(await d.ReadStringAsync(4));
-		Console.WriteLine(await d.ReadInt());
-		Console.WriteLine(await d.ReadStringAsync());
+	
 		await h.RunAsync();
 	}
 
