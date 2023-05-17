@@ -1,4 +1,6 @@
 ﻿using System.Text;
+// ReSharper disable BuiltInTypeReferenceStyleForMemberAccess
+#pragma warning disable IDE0049
 
 namespace Andro.Lib.Android;
 

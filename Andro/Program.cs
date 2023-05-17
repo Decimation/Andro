@@ -1,5 +1,4 @@
-﻿global using Resources1 = Andro.Lib.Properties.Resources;
-
+﻿
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using Andro.Lib.Android;
@@ -31,6 +30,7 @@ https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInput
 public static class Program
 {
 	public const string PUSH_FOLDER = "/push-folder";
+	public const string PUSH_ALL = "/push-all";
 	public const string FSIZE       = "/fsize";
 	public const string DSIZE       = "/dsize";
 	public const string PUSH        = "/push";
@@ -58,7 +58,7 @@ public static class Program
 		using IHost h = Host.CreateDefaultBuilder()
 			.ConfigureHostOptions((a, b) =>
 			{
-				a.HostingEnvironment.ApplicationName = Resources1.Name;
+				a.HostingEnvironment.ApplicationName = Resources.Name;
 			})
 			.ConfigureLogging((a, b) => { })
 			.Build();
@@ -69,7 +69,7 @@ public static class Program
 		 * Setup
 		 */
 
-		Console.Title = Resources1.Name;
+		Console.Title = Resources.Name;
 
 		/*
 		 *
@@ -81,7 +81,7 @@ public static class Program
 
 		var devices = await d1.GetDevicesAsync();
 		var dev     = devices.First();
-		var o       = (await dev.ShellAsync("echo butt"));
+		var o       = (await dev.ShellAsync("echo hi"));
 
 		var nr = new StreamReader(o);
 		Console.WriteLine(await nr.ReadToEndAsync());
@@ -95,7 +95,7 @@ public static class Program
 		var buffer = MemoryPool<byte>.Shared.Rent(8192);
 		await d.Tcp.Client.ReceiveAsync(buffer.Memory);
 		Console.WriteLine(Encoding.UTF8.GetString(buffer.Memory.Span));*/
-		// var bytes = await d.ShellAsync("echo", new[] { "butt"});
+		// var bytes = await d.ShellAsync("echo", new[] { "hi"});
 
 		/*var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
 		Console.WriteLine(bytes);
