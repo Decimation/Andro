@@ -1,5 +1,4 @@
-﻿
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
 using Andro.Lib.Properties;
 using Microsoft.Win32;
@@ -11,7 +10,7 @@ namespace Andro.App;
 public static class AppIntegration
 {
 	static AppIntegration() { }
-	
+
 	/*
 	 * HKEY_CLASSES_ROOT is an alias, a merging, of two other locations:
 	 *		HKEY_CURRENT_USER\Software\Classes
@@ -93,7 +92,7 @@ public static class AppIntegration
 		return null;
 	}
 
-	public static bool? HandleSendToMenu(bool? b= null)
+	public static bool? HandleSendToMenu(bool? b = null)
 	{
 
 		var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -103,6 +102,7 @@ public static class AppIntegration
 
 		var sendToFile = Path.Combine(sendTo, Resources.NameShortcut);
 		b ??= !File.Exists(sendToFile);
+
 		switch (b) {
 			case true:
 				// string location = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -113,7 +113,7 @@ public static class AppIntegration
 				// link.SetDescription("My Description");
 				link.SetPath(AppIntegration.ExeLocation);
 				link.SetArguments(Program.PUSH_ALL);
-
+				
 				// save it
 				var file = (IPersistFile) link;
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);

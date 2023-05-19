@@ -1,9 +1,11 @@
-﻿
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using Andro.Lib.Android;
 using Andro.App;
+using Andro.Lib.Kde;
 using Andro.Lib.Properties;
+using Kantan.Collections;
+using Kantan.Text;
 using Microsoft.Extensions.Hosting;
 using Novus.Streams;
 
@@ -30,7 +32,7 @@ https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInput
 public static class Program
 {
 	public const string PUSH_FOLDER = "/push-folder";
-	public const string PUSH_ALL = "/push-all";
+	public const string PUSH_ALL    = "/push-all";
 	public const string FSIZE       = "/fsize";
 	public const string DSIZE       = "/dsize";
 	public const string PUSH        = "/push";
@@ -43,7 +45,7 @@ public static class Program
 
 	private const char CTRL_Z = '\x1A';
 
-	public static async Task Main(string[] args)
+	public static async Task<int> Main(string[] args)
 	{
 #if TEST
 		if (!args.Any()) {
@@ -52,7 +54,7 @@ public static class Program
 #endif
 
 #if DEBUG
-
+		Console.WriteLine($"{args.QuickJoin()}");
 #endif
 
 		using IHost h = Host.CreateDefaultBuilder()
@@ -74,6 +76,65 @@ public static class Program
 		/*
 		 *
 		 */
+		if (args.Any()) {
+			var e = args.GetEnumerator().Cast<string>();
+
+			while (e.MoveNext()) {
+
+				var spl = e.Current.Split(':');
+
+				var name = spl[0];
+
+				if (spl.Length >= 2) {
+					var arg = bool.Parse(spl[1]);
+
+					Func<bool?, bool?> menu;
+
+					switch (name) {
+						case APP_SENDTO:
+							menu = AppIntegration.HandleSendToMenu;
+							break;
+						case APP_CTX:
+							menu = AppIntegration.HandleContextMenu;
+							break;
+						default:
+
+							menu = _ =>
+							{
+								Console.Error.WriteLine();
+								return null;
+							};
+							break;
+
+					}
+
+					menu(arg);
+
+				}
+				else {
+					switch (name) {
+						case PUSH_ALL:
+
+							var idx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
+							Console.ReadKey();
+							var aa = args[idx..];
+							Console.WriteLine($"{aa.QuickJoin()}");
+							Console.ReadKey();
+
+							var k  = await KdeConnect.Init();
+							var ff = await k.Send(aa);
+							Console.WriteLine($" {aa} {ff.QuickJoin()}");
+							break;
+					}
+
+				}
+			}
+
+#if DEBUG
+			Console.ReadKey();
+#endif
+			return 0;
+		}
 
 		string s = null;
 
@@ -104,5 +165,6 @@ public static class Program
 		Console.WriteLine(d.NetworkStream.DataAvailable);*/
 		Console.WriteLine(await dev.GetStateAsync());
 		await h.RunAsync();
+		return 0;
 	}
 }
