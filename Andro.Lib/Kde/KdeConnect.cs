@@ -33,7 +33,7 @@ public class KdeConnect
 		};
 	}
 
-	public async Task<string[]> Send(string[] f, CancellationToken ct = default)
+	public async Task<string[]> SendAsync(string[] f, IProgress<string>? p = null, CancellationToken ct = default)
 	{
 		var cb = new ConcurrentBag<string>();
 
@@ -46,7 +46,9 @@ public class KdeConnect
 				        .WithStandardErrorPipe(PipeTarget.ToStringBuilder(buf2))
 				        .WithArguments($"-d {Device} --share \"{s}\"")
 				        .ExecuteAsync(ct, token);
-			cb.Add(buf.ToString());
+			var v = buf.ToString();
+			cb.Add(v);
+			p?.Report(v);
 			return;
 		});
 

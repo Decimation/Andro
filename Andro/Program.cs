@@ -8,6 +8,7 @@ using Kantan.Collections;
 using Kantan.Text;
 using Microsoft.Extensions.Hosting;
 using Novus.Streams;
+using Spectre.Console;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -77,48 +78,11 @@ public static class Program
 		 *
 		 */
 		if (args.Any()) {
-			var e = args.GetEnumerator().Cast<string>();
-
-			while (e.MoveNext()) {
-
-				var spl = e.Current.Split(':');
-
-				var name = spl[0];
-
-				void cmp(Func<bool?, bool?> f)
-				{
-					var arg = bool.Parse(spl[1]);
-					f(arg);
-				}
-
-				switch (name) {
-					case APP_SENDTO:
-						cmp(AppIntegration.HandleSendToMenu);
-						break;
-					case APP_CTX:
-						cmp(AppIntegration.HandleContextMenu);
-						break;
-					default:
-						break;
-					case PUSH_ALL:
-
-						var idx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
-						Console.ReadKey();
-						var aa = args[idx..];
-						Console.WriteLine($"{aa.QuickJoin()}");
-						Console.ReadKey();
-
-						var k  = await KdeConnect.Init();
-						var ff = await k.Send(aa);
-						Console.WriteLine($" {aa} {ff.QuickJoin()}");
-						break;
-
-				}
-
-			}
+			await ReadArgs(args);
 
 #if DEBUG
-			Console.ReadKey();
+			var cfm = AnsiConsole.Confirm("Exit?", true);
+
 #endif
 			return 0;
 		}
@@ -153,5 +117,74 @@ public static class Program
 		Console.WriteLine(await dev.GetStateAsync());
 		await h.RunAsync();
 		return 0;
+	}
+
+	private static async Task ReadArgs(string[] args)
+	{
+		var e = args.GetEnumerator().Cast<string>();
+
+		while (e.MoveNext()) {
+
+			var spl = e.Current.Split(':');
+
+			var name = spl[0];
+
+			void HandleType(Func<bool?, bool?> f)
+			{
+				var arg = bool.Parse(spl[1]);
+				f(arg);
+			}
+
+			switch (name) {
+				case APP_SENDTO:
+					HandleType(AppIntegration.HandleSendToMenu);
+					break;
+				case APP_CTX:
+					HandleType(AppIntegration.HandleContextMenu);
+					break;
+				default:
+					break;
+				case PUSH_ALL:
+
+					var filesIdx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
+					var files    = args[filesIdx..];
+
+					var progress = AnsiConsole.Progress().Columns(new ProgressColumn[]
+					{
+						new TaskDescriptionColumn(), // Task description
+						new ProgressBarColumn(),     // Progress bar
+						new PercentageColumn(),      // Percentage
+						new SpinnerColumn(),         // Spinner
+					}).AutoRefresh(true);
+
+					var t = progress.StartAsync(async (context) =>
+					{
+						var pt = context.AddTask("Send", false, files.Length);
+						
+						var k = await KdeConnect.Init();
+						int n = 0;
+
+						Action<string> handler = (x) =>
+						{
+							n++;
+							// pt.Value += ()*100D;
+							pt.Increment(n);
+						};
+
+						var prg = new Progress<string>(handler)
+							{ };
+						pt.StartTask();
+						var ff = await k.SendAsync(files, prg);
+						pt.StopTask();
+
+						return;
+					});
+					await t;
+
+					break;
+
+			}
+
+		}
 	}
 }

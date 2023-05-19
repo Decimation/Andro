@@ -8,7 +8,7 @@ public static class Program
 		
 		Console.WriteLine(k);
 
-		foreach (var v in await k.Send(new []{ "C:\\Users\\Deci\\Downloads\\chloe_oc_by_sciamano240_dfxf0ot.png" })) {
+		foreach (var v in await k.SendAsync(new []{ "C:\\Users\\Deci\\Downloads\\chloe_oc_by_sciamano240_dfxf0ot.png", null })) {
 			Console.WriteLine(v);
 		}
 	}
