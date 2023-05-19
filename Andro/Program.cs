@@ -85,49 +85,36 @@ public static class Program
 
 				var name = spl[0];
 
-				if (spl.Length >= 2) {
+				void cmp(Func<bool?, bool?> f)
+				{
 					var arg = bool.Parse(spl[1]);
+					f(arg);
+				}
 
-					Func<bool?, bool?> menu;
+				switch (name) {
+					case APP_SENDTO:
+						cmp(AppIntegration.HandleSendToMenu);
+						break;
+					case APP_CTX:
+						cmp(AppIntegration.HandleContextMenu);
+						break;
+					default:
+						break;
+					case PUSH_ALL:
 
-					switch (name) {
-						case APP_SENDTO:
-							menu = AppIntegration.HandleSendToMenu;
-							break;
-						case APP_CTX:
-							menu = AppIntegration.HandleContextMenu;
-							break;
-						default:
+						var idx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
+						Console.ReadKey();
+						var aa = args[idx..];
+						Console.WriteLine($"{aa.QuickJoin()}");
+						Console.ReadKey();
 
-							menu = _ =>
-							{
-								Console.Error.WriteLine();
-								return null;
-							};
-							break;
-
-					}
-
-					menu(arg);
+						var k  = await KdeConnect.Init();
+						var ff = await k.Send(aa);
+						Console.WriteLine($" {aa} {ff.QuickJoin()}");
+						break;
 
 				}
-				else {
-					switch (name) {
-						case PUSH_ALL:
 
-							var idx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
-							Console.ReadKey();
-							var aa = args[idx..];
-							Console.WriteLine($"{aa.QuickJoin()}");
-							Console.ReadKey();
-
-							var k  = await KdeConnect.Init();
-							var ff = await k.Send(aa);
-							Console.WriteLine($" {aa} {ff.QuickJoin()}");
-							break;
-					}
-
-				}
 			}
 
 #if DEBUG
