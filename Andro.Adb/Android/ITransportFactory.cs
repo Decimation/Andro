@@ -1,4 +1,4 @@
-﻿namespace Andro.Lib.Android;
+﻿namespace Andro.Adb.Android;
 
 public interface ITransportFactory
 {

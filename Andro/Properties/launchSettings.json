@@ -2,6 +2,10 @@
   "profiles": {
     "Andro": {
       "commandName": "Project"
+    },
+    "Profile 1": {
+      "commandName": "Project",
+      "commandLineArgs": "-ctx-menu"
     }
   }
 }

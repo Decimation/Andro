@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Andro.Lib.Android;
+using Andro.Adb.Android;
 
 namespace UnitTest;
 [TestFixture]

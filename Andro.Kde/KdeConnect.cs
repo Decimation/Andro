@@ -6,7 +6,7 @@ namespace Andro.Kde;
 
 public class KdeConnect
 {
-	public static readonly Command Kde = CliWrap.Cli.Wrap("kdeconnect-cli");
+	public static readonly Command Kde = Cli.Wrap("kdeconnect-cli");
 
 	public string Device { get; private set; }
 

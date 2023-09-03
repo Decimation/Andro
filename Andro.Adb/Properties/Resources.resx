@@ -132,21 +132,6 @@
   <data name="Cmd_Version" xml:space="preserve">
     <value>host:version</value>
   </data>
-  <data name="Reg_Shell" xml:space="preserve">
-    <value>SOFTWARE\Classes\*\shell\Andro</value>
-  </data>
-  <data name="Reg_Shell_Main" xml:space="preserve">
-    <value>SOFTWARE\Classes\*\shell\Andro\shell\Main</value>
-  </data>
-  <data name="Reg_Shell_Main_Cmd" xml:space="preserve">
-    <value>SOFTWARE\Classes\*\shell\Andro\shell\Main\command</value>
-  </data>
-  <data name="Reg_Shell_First" xml:space="preserve">
-    <value>SOFTWARE\Classes\*\shell\Andro\shell\First</value>
-  </data>
-  <data name="Reg_Shell_First_Cmd" xml:space="preserve">
-    <value>SOFTWARE\Classes\*\shell\Andro\shell\First\command</value>
-  </data>
   <data name="Cmd_HostTransport_Any" xml:space="preserve">
     <value>host:transport-any</value>
   </data>

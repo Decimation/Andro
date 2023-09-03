@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Text;
-using Andro.Lib.Properties;
-using Andro.Lib.Utilities;
+using Andro.Adb.Properties;
+using Andro.Adb.Utilities;
 using JetBrains.Annotations;
 
 // ReSharper disable InconsistentNaming
@@ -32,7 +32,7 @@ using JetBrains.Annotations;
 
 #pragma warning disable HAA0101*/
 
-namespace Andro.Lib.Android;
+namespace Andro.Adb.Android;
 
 public class Transport : IDisposable
 {
@@ -94,15 +94,15 @@ public class Transport : IDisposable
 	public async Task<int> ReadInt()
 	{
 		var buffers = new byte[sizeof(int)];
-		var s       = await Tcp.Client.ReceiveAsync(buffers);
-		var val     = BinaryPrimitives.ReverseEndianness(BitConverter.ToInt32(buffers));
+		var s = await Tcp.Client.ReceiveAsync(buffers);
+		var val = BinaryPrimitives.ReverseEndianness(BitConverter.ToInt32(buffers));
 		return val;
 	}
 
 	public async Task<string> ReadStringAsync()
 	{
-		var l  = await ReadStringAsync(SZ_LEN);
-		var l2 = Int32.Parse(l, NumberStyles.HexNumber);
+		var l = await ReadStringAsync(SZ_LEN);
+		var l2 = int.Parse(l, NumberStyles.HexNumber);
 		return await ReadStringAsync(l2);
 
 	}
@@ -149,16 +149,18 @@ public class Transport : IDisposable
 		var res = await ReadStringAsync(SZ_LEN);
 
 		string msg = res;
-		bool?  b   = null;
+		bool? b = null;
 
-		switch (res) {
+		switch (res)
+		{
 			case "OKAY":
 				b = true;
 				break;
 			case "FAIL":
 				msg = await ReadStringAsync();
 
-				if (throws) {
+				if (throws)
+				{
 					throw new AdbException(msg);
 				}
 
@@ -177,7 +179,7 @@ public class Transport : IDisposable
 		return new AdbResponse()
 		{
 			Message = msg,
-			Ok      = b
+			Ok = b
 		};
 	}
 

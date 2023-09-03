@@ -3,12 +3,13 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
-using Andro.Lib.Utilities;
+using Andro.Adb.Utilities;
+using Andro.Adb.Utilities;
 
 [assembly: InternalsVisibleTo("Andro")]
 [assembly: InternalsVisibleTo("UnitTest")]
 
-namespace Andro.Lib.Android;
+namespace Andro.Adb.Android;
 
 public class AdbDevice : ITransportFactory
 {
@@ -18,7 +19,7 @@ public class AdbDevice : ITransportFactory
 
 	internal AdbDevice(string? serial, ITransportFactory f)
 	{
-		Serial    = serial;
+		Serial = serial;
 		m_factory = f;
 	}
 
@@ -26,10 +27,12 @@ public class AdbDevice : ITransportFactory
 	{
 		var t = await m_factory.GetTransport();
 
-		try {
+		try
+		{
 			await SendAsync(t, Serial == null ? "host:transport-any" : $"host:transport:{Serial}");
 		}
-		catch (Exception e) {
+		catch (Exception e)
+		{
 			t.Dispose();
 			throw new AdbException(message: null, innerException: e);
 		}
@@ -47,10 +50,10 @@ public class AdbDevice : ITransportFactory
 
 	public async Task<List<string>> list(string rp)
 	{
-		using var t  = await GetTransport();
-		var       t2 = await t.startSync();
+		using var t = await GetTransport();
+		var t2 = await t.startSync();
 		await t2.Send("LIST", rp);
-		var x=await t2.ReadString(Transport.SZ_LEN);
+		var x = await t2.ReadString(Transport.SZ_LEN);
 
 		return default;
 	}
@@ -64,7 +67,7 @@ public class AdbDevice : ITransportFactory
 	public async Task<AdbFilterInputStream> ShellAsync(string cmd, IEnumerable<string>? args = null)
 	{
 		args ??= Enumerable.Empty<string>();
-		var cmd2 = $"{cmd} {String.Join(' ', args.Select(AdbHelper.Escape))}";
+		var cmd2 = $"{cmd} {string.Join(' ', args.Select(AdbHelper.Escape))}";
 		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
 
 		// await SendAsync($"{R.Cmd_Shell}{cmd2}");

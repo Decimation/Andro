@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Andro.Lib.Android;
+namespace Andro.Adb.Android;
 
 public class AdbConnection : ITransportFactory
 {
 	public string Host { get; }
-	public int    Port { get; }
+	public int Port { get; }
 
 	private AdbConnection(string host, int port)
 	{
@@ -39,14 +39,16 @@ public class AdbConnection : ITransportFactory
 
 	internal AdbDevice[] ParseDevices(string body)
 	{
-		var lines   = body.Split(Environment.NewLine);
+		var lines = body.Split(Environment.NewLine);
 		var devices = new AdbDevice[lines.Length];
-		int i       = 0;
+		int i = 0;
 
-		foreach (string s in lines) {
+		foreach (string s in lines)
+		{
 			var parts = s.Split('\t');
 
-			if (parts.Length > 1) {
+			if (parts.Length > 1)
+			{
 				devices[i++] = new AdbDevice(parts[0], this);
 			}
 		}

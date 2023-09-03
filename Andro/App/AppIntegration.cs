@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿global using R1 = Andro.Adb.Properties.Resources;
+global using R2 = Andro.Resources;
+using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
-using Andro.Lib.Properties;
+using Andro.Adb.Properties;
 using Microsoft.Win32;
 using Novus.OS;
 
@@ -17,15 +19,24 @@ public static class AppIntegration
 	 *		HKEY_LOCAL_MACHINE\Software\Classes
 	 */
 
-	public static string ExeLocation => FileSystem.FindExecutableLocation(Resources.NameExe)!;
+	public static string ExeLocation => FileSystem.FindExecutableLocation(R1.NameExe)!;
 
 	internal const string STRING_FORMAT_ARG = "str";
 
 	internal const string DEBUG_COND = "DEBUG";
 
+	public static bool IsContextMenuAdded
+	{
+		get
+		{
+			var reg = Registry.CurrentUser.OpenSubKey(R2.Reg_Shell);
+			return reg != null;
+		}
+	}
+
 	public static bool? HandleContextMenu(bool? b = null)
 	{
-		b ??= Registry.CurrentUser.OpenSubKey(Lib.Properties.Resources.Reg_Shell) == null;
+		b ??= Registry.CurrentUser.OpenSubKey(R2.Reg_Shell) == null;
 
 		if (b.Value) {
 			RegistryKey shell    = null;
@@ -40,29 +51,29 @@ public static class AppIntegration
 
 			try {
 
-				shell = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell);
+				shell = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell);
 
 				if (shell != null) {
-					shell.SetValue("MUIVerb", Resources.Name);
+					shell.SetValue("MUIVerb", R1.Name);
 					shell.SetValue("Icon", $"\"{fullPath}\"");
 					shell.SetValue("subcommands", string.Empty);
 				}
 
-				main = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_Main);
+				main = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Main);
 
 				if (main != null) {
 					main.SetValue(null, "Main action");
 					main.SetValue("CommandFlags", 0x00000040, RegistryValueKind.DWord);
 				}
 
-				mainCmd = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_Main_Cmd);
+				mainCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Main_Cmd);
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
 
-				first = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_First);
+				first = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First);
 				first?.SetValue(null, "sdcard/");
 
-				firstCmd = Registry.CurrentUser.CreateSubKey(Resources.Reg_Shell_First_Cmd);
-				firstCmd?.SetValue(null, $"\"{fullPath}\" {Program.PUSH} \"%1\" sdcard/");
+				firstCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First_Cmd);
+				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" sdcard/");
 				return true;
 
 			}
@@ -79,11 +90,11 @@ public static class AppIntegration
 
 		}
 		else {
-			var shell = Registry.CurrentUser.OpenSubKey(Resources.Reg_Shell);
+			var shell = Registry.CurrentUser.OpenSubKey(R2.Reg_Shell);
 
 			if (shell != null) {
 				shell.Close();
-				Registry.CurrentUser.DeleteSubKeyTree(Resources.Reg_Shell);
+				Registry.CurrentUser.DeleteSubKeyTree(R2.Reg_Shell);
 				return false;
 			}
 
@@ -98,9 +109,9 @@ public static class AppIntegration
 		var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
 		                          @"AppData\Roaming\Microsoft\Windows\SendTo");
 
-		Debug.WriteLine($"{AppIntegration.ExeLocation}");
+		Debug.WriteLine($"{ExeLocation}");
 
-		var sendToFile = Path.Combine(sendTo, Resources.NameShortcut);
+		var sendToFile = Path.Combine(sendTo, R1.NameShortcut);
 		b ??= !File.Exists(sendToFile);
 
 		switch (b) {
@@ -111,9 +122,9 @@ public static class AppIntegration
 
 				// setup shortcut information
 				// link.SetDescription("My Description");
-				link.SetPath(AppIntegration.ExeLocation);
-				link.SetArguments(Program.PUSH_ALL);
-				
+				link.SetPath(ExeLocation);
+				link.SetArguments(R2.Arg_PushAll);
+
 				// save it
 				var file = (IPersistFile) link;
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);

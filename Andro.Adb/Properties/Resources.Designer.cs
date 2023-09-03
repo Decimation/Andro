@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Andro.Lib.Properties {
+namespace Andro.Adb.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Andro.Lib.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Andro.Lib.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Andro.Adb.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -138,51 +138,6 @@ namespace Andro.Lib.Properties {
         internal static string NameShortcut {
             get {
                 return ResourceManager.GetString("NameShortcut", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro.
-        /// </summary>
-        internal static string Reg_Shell {
-            get {
-                return ResourceManager.GetString("Reg_Shell", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\First.
-        /// </summary>
-        internal static string Reg_Shell_First {
-            get {
-                return ResourceManager.GetString("Reg_Shell_First", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\First\command.
-        /// </summary>
-        internal static string Reg_Shell_First_Cmd {
-            get {
-                return ResourceManager.GetString("Reg_Shell_First_Cmd", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\Main.
-        /// </summary>
-        internal static string Reg_Shell_Main {
-            get {
-                return ResourceManager.GetString("Reg_Shell_Main", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\Main\command.
-        /// </summary>
-        internal static string Reg_Shell_Main_Cmd {
-            get {
-                return ResourceManager.GetString("Reg_Shell_Main_Cmd", resourceCulture);
             }
         }
     }

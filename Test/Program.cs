@@ -1,5 +1,5 @@
 ﻿using Andro.Kde;
-using Andro.Lib.Android;
+using Andro.Adb.Android;
 using Novus.Win32;
 
 namespace Test;

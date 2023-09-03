@@ -1,14 +1,17 @@
 ﻿using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Andro.Lib.Android;
+using Andro.Adb.Android;
 using Andro.App;
 using Andro.Kde;
-using Andro.Lib.Properties;
+using Andro.Adb.Properties;
 using Kantan.Collections;
 using Kantan.Text;
 using Microsoft.Extensions.Hosting;
 using Novus.Streams;
 using Spectre.Console;
+using System.IO.Pipes;
+using Novus.Utilities;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -32,159 +35,141 @@ https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInput
  */
 public static class Program
 {
-	public const string PUSH_FOLDER = "/push-folder";
-	public const string PUSH_ALL    = "/push-all";
-	public const string FSIZE       = "/fsize";
-	public const string DSIZE       = "/dsize";
-	public const string PUSH        = "/push";
-
-	public const string APP_SENDTO = "/sendto";
-	public const string APP_CTX    = "/ctx";
-
-	public const string OP_ADD = "add";
-	public const string OP_RM  = "rm";
-
 	private const char CTRL_Z = '\x1A';
+
+	static Program()
+	{
+		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
+
+	}
 
 	public static async Task<int> Main(string[] args)
 	{
 #if TEST
-		if (!args.Any()) {
-
-		}
 #endif
 
 #if DEBUG
-		Console.WriteLine($"{args.QuickJoin()}");
 #endif
 
-		using IHost h = Host.CreateDefaultBuilder()
-			.ConfigureHostOptions((a, b) =>
+		Trace.WriteLine($"{args.QuickJoin()}");
+
+		await parseArgs(args);
+
+		if (mutex.WaitOne(TimeSpan.Zero, true)) {
+			// This instance acquired the mutex, it's the first instance.
+			// Continue with your application logic here.
+
+			using IHost h = Host.CreateDefaultBuilder()
+				.ConfigureHostOptions((a, b) =>
+				{
+					a.HostingEnvironment.ApplicationName = R1.Name;
+				})
+				.ConfigureLogging((a, b) => { })
+				.Build();
+
+			/*
+			 * Setup
+			 */
+
+			Console.Title = R1.Name;
+
+			// ...
+			OnPipeMessage += s =>
 			{
-				a.HostingEnvironment.ApplicationName = Resources.Name;
-			})
-			.ConfigureLogging((a, b) => { })
-			.Build();
+				Console.WriteLine($"pi: {s}");
+			};
 
-		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
+			// Release the mutex when your application is done.
+			var ht = h.RunAsync();
+			mutex.ReleaseMutex();
 
-		/*
-		 * Setup
-		 */
+			StartServer();
 
-		Console.Title = Resources.Name;
-
-		/*
-		 *
-		 */
-		if (args.Any()) {
-			await ReadArgs(args);
-
-#if DEBUG
-			var cfm = AnsiConsole.Confirm("Exit?", true);
-
-#endif
+			await ht;
 			return 0;
 		}
+		else {
+			// Another instance is already running.
+			// You can choose to intercept data here or take other actions.
+			Console.WriteLine($"Another instance is already running. {args.QuickJoin()}");
+			// Console.ReadKey();
+			SendMessage(args);
 
-		string s = null;
+		}
 
-		var d1 = new AdbConnection();
-
-		var devices = await d1.GetDevicesAsync();
-		var dev     = devices.First();
-		var o       = (await dev.ShellAsync("echo hi"));
-
-		var nr = new StreamReader(o);
-		Console.WriteLine(await nr.ReadToEndAsync());
-
-		// d.Dispose();
-		// d = new AdbDevice();
-
-		/*var payload = AdbHelper.GetPayload("host:track-devices", out var rg, out var rg2);
-
-		await d.Tcp.Client.SendAsync(rg2);
-		var buffer = MemoryPool<byte>.Shared.Rent(8192);
-		await d.Tcp.Client.ReceiveAsync(buffer.Memory);
-		Console.WriteLine(Encoding.UTF8.GetString(buffer.Memory.Span));*/
-		// var bytes = await d.ShellAsync("echo", new[] { "hi"});
-
-		/*var bytes = await d.ShellAsync("ls", new[] { "-lR", "sdcard/pictures/" });
-		Console.WriteLine(bytes);
-		Console.WriteLine(d.IsAlive);
-		// await d.SendAsync("sync:list sdcard/pictures/");
-		Console.WriteLine(d.NetworkStream.DataAvailable);*/
-		Console.WriteLine(await dev.GetStateAsync());
-		await h.RunAsync();
 		return 0;
 	}
 
-	private static async Task ReadArgs(string[] args)
+	static async Task parseArgs(string[] args)
 	{
-		var e = args.GetEnumerator().Cast<string>();
+		var e = args.GetEnumerator();
 
 		while (e.MoveNext()) {
+			var v = (string) e.Current;
 
-			var spl = e.Current.Split(':');
-
-			var name = spl[0];
-
-			void HandleType(Func<bool?, bool?> f)
-			{
-				var arg = bool.Parse(spl[1]);
-				f(arg);
-			}
-
-			switch (name) {
-				case APP_SENDTO:
-					HandleType(AppIntegration.HandleSendToMenu);
-					break;
-				case APP_CTX:
-					HandleType(AppIntegration.HandleContextMenu);
-					break;
-				default:
-					break;
-				case PUSH_ALL:
-
-					var filesIdx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
-					var files    = args[filesIdx..];
-
-					var progress = AnsiConsole.Progress().Columns(new ProgressColumn[]
-					{
-						new TaskDescriptionColumn(), // Task description
-						new ProgressBarColumn(),     // Progress bar
-						new PercentageColumn(),      // Percentage
-						new SpinnerColumn(),         // Spinner
-					}).AutoRefresh(true);
-
-					var t = progress.StartAsync(async (context) =>
-					{
-						var pt = context.AddTask("Send", false, files.Length);
-						
-						var k = await KdeConnect.InitAsync();
-						int n = 0;
-
-						Action<string> handler = (x) =>
-						{
-							n++;
-							// pt.Value += ()*100D;
-							pt.Increment(n);
-						};
-
-						var prg = new Progress<string>(handler)
-							{ };
-						pt.StartTask();
-						var ff = await k.SendAsync(files, prg);
-						pt.StopTask();
-
-						return;
-					});
-					await t;
-
-					break;
-
+			if (v == R2.Arg_CtxMenu) {
+				AppIntegration.HandleContextMenu(!AppIntegration.IsContextMenuAdded);
+				continue;
 			}
 
 		}
+	}
+
+	static Mutex mutex = new Mutex(true, SingleGuid);
+
+	/// <summary>
+	/// This identifier must be unique for each application.
+	/// </summary>
+	public const string SingleGuid = "{910e8c27-ab31-4043-9c5d-1382707e6c93}";
+
+	public const string IPC_PIPE_NAME = "SIPC";
+
+	public const char ARGS_DELIM = '\0';
+
+	public static NamedPipeServerStream PipeServer { get; private set; }
+
+	public static Thread PipeThread { get; private set; }
+
+	private static void SendMessage(string[] e)
+	{
+
+		using (var pipe = new NamedPipeClientStream(".", IPC_PIPE_NAME, PipeDirection.Out))
+		using (var stream = new StreamWriter(pipe)) {
+			pipe.Connect();
+
+			foreach (var s in e) {
+				stream.WriteLine(s);
+			}
+
+			stream.Write($"{ARGS_DELIM}{ProcessHelper.GetParent().Id}");
+		}
+	}
+
+	public delegate void PipeMessageCallback(string s);
+
+	public static event PipeMessageCallback OnPipeMessage;
+
+	private static void StartServer()
+	{
+		PipeServer = new NamedPipeServerStream(IPC_PIPE_NAME, PipeDirection.In);
+
+		PipeThread = new Thread(() =>
+		{
+			while (true) {
+				PipeServer.WaitForConnection();
+				var sr = new StreamReader(PipeServer);
+
+				while (!sr.EndOfStream) {
+					var v = sr.ReadLine();
+					OnPipeMessage?.Invoke(v);
+				}
+
+				PipeServer.Disconnect();
+			}
+		})
+		{
+			IsBackground = true
+		};
+		PipeThread.Start();
 	}
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Andro.Lib.Android;
+namespace Andro.Adb.Android;
 
 public class SyncTransport
 {
@@ -17,9 +17,10 @@ public class SyncTransport
 		m_writer = writer;
 	}
 
-	public async Task Send(String cmd, string name)
+	public async Task Send(string cmd, string name)
 	{
-		if (cmd.Length != Transport.SZ_LEN) {
+		if (cmd.Length != Transport.SZ_LEN)
+		{
 			throw new ArgumentException();
 		}
 

@@ -2,7 +2,7 @@
 // ReSharper disable BuiltInTypeReferenceStyleForMemberAccess
 #pragma warning disable IDE0049
 
-namespace Andro.Lib.Android;
+namespace Andro.Adb.Android;
 
 public static class AdbHelper
 {
@@ -25,7 +25,8 @@ public static class AdbHelper
 
 	internal static AdbDeviceState ConvertState(string type)
 	{
-		if (String.IsNullOrWhiteSpace(type)) {
+		if (string.IsNullOrWhiteSpace(type))
+		{
 			return AdbDeviceState.Unknown;
 		}
 

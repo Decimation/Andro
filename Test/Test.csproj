@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Andro.Kde\Andro.Kde.csproj" />
-    <ProjectReference Include="..\Andro.Lib\Andro.Lib.csproj" />
+    <ProjectReference Include="..\Andro.Adb\Andro.Adb.csproj" />
   </ItemGroup>
 
   <ItemGroup>

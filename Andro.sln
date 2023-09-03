@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Andro", "Andro\Andro.csproj", "{60DD2FB1-D77F-445E-A922-EF74E076A839}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Andro.Lib", "Andro.Lib\Andro.Lib.csproj", "{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Andro.Adb", "Andro.Adb\Andro.Adb.csproj", "{6ED4E7AB-D051-42F2-A690-AF9AFE6FEDAC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTest", "UnitTest\UnitTest.csproj", "{1E815412-9E3E-434F-932B-8D50CD144569}"
 EndProject
@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{423CE0D9-5A00-4515-B20B-B4B78A1C7836}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Andro.Kde", "Andro.Kde\Andro.Kde.csproj", "{9A56B300-1141-48B4-AA97-A7AB2C70811A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Andro.Kde", "Andro.Kde\Andro.Kde.csproj", "{9A56B300-1141-48B4-AA97-A7AB2C70811A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
