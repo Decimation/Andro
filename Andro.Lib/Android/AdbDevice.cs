@@ -45,6 +45,16 @@ public class AdbDevice : ITransportFactory
 		return AdbHelper.ConvertState(await t.ReadStringAsync());
 	}
 
+	public async Task<List<string>> list(string rp)
+	{
+		using var t  = await GetTransport();
+		var       t2 = await t.startSync();
+		await t2.Send("LIST", rp);
+		var x=await t2.ReadString(Transport.SZ_LEN);
+
+		return default;
+	}
+
 	private async Task SendAsync(Transport t, string c)
 	{
 		await t.SendAsync(c);

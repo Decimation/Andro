@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using Andro.Lib.Android;
 using Andro.App;
-using Andro.Lib.Kde;
+using Andro.Kde;
 using Andro.Lib.Properties;
 using Kantan.Collections;
 using Kantan.Text;
@@ -161,7 +161,7 @@ public static class Program
 					{
 						var pt = context.AddTask("Send", false, files.Length);
 						
-						var k = await KdeConnect.Init();
+						var k = await KdeConnect.InitAsync();
 						int n = 0;
 
 						Action<string> handler = (x) =>

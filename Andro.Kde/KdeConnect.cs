@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 using System.Text;
-using System.Threading.Tasks;
 using CliWrap;
 
-namespace Andro.Lib.Kde;
+namespace Andro.Kde;
 
 public class KdeConnect
 {
@@ -14,7 +10,7 @@ public class KdeConnect
 
 	public string Device { get; private set; }
 
-	public static async Task<KdeConnect> Init(CancellationToken ct = default)
+	public static async Task<KdeConnect> InitAsync(CancellationToken ct = default)
 	{
 
 		var buf  = new StringBuilder();
@@ -33,7 +29,7 @@ public class KdeConnect
 		};
 	}
 
-	public async Task<string[]> SendAsync(string[] f, IProgress<string>? p = null, CancellationToken ct = default)
+	public async Task<string[]> SendAsync(IEnumerable<string> f, IProgress<string>? p = null, CancellationToken ct = default)
 	{
 		var cb = new ConcurrentBag<string>();
 

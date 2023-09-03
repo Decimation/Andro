@@ -25,4 +25,11 @@ public class SyncTransport
 
 		await m_writer.WriteAsync(cmd);
 	}
+
+	public async ValueTask<string> ReadString(int l)
+	{
+		var buf = new byte[l];
+		await m_reader.BaseStream.ReadAsync(buf);
+		return AdbHelper.Encoding.GetString(buf);
+	}
 }
