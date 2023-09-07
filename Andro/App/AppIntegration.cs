@@ -44,8 +44,10 @@ public static class AppIntegration
 			RegistryKey mainCmd  = null;
 			RegistryKey first    = null;
 			RegistryKey firstCmd = null;
+			RegistryKey snd    = null;
+			RegistryKey sndCmd = null;
 
-			string fullPath = ExeLocation;
+			string      fullPath = ExeLocation;
 
 			//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
 
@@ -74,6 +76,12 @@ public static class AppIntegration
 
 				firstCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First_Cmd);
 				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" sdcard/");
+
+				snd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Snd);
+				snd?.SetValue(null, "Clipboard");
+				sndCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Snd_Cmd);
+				sndCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Clipboard} \"%1\"");
+
 				return true;
 
 			}

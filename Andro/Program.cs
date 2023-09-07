@@ -1,4 +1,6 @@
-﻿using System.Buffers.Binary;
+﻿using System.ServiceModel;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Andro.Adb.Android;
@@ -11,7 +13,14 @@ using Microsoft.Extensions.Hosting;
 using Novus.Streams;
 using Spectre.Console;
 using System.IO.Pipes;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using Andro.Adb;
 using Novus.Utilities;
+using System.Threading;
+using Novus.Win32;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -33,72 +42,153 @@ https://github.com/vidstige/jadb/tree/master/src/se/vidstige/jadb
 https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInputStream.java
 
  */
+
 public static class Program
 {
-	private const char CTRL_Z = '\x1A';
+	private static bool _createdNew;
+	private const  char CTRL_Z = '\x1A';
+	private static int  inter  = 0;
 
 	static Program()
 	{
 		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 
+		OnPipeMessage += async s =>
+		{
+			// Console.WriteLine($"pi: {s}");
+
+			if (s[0] == ARGS_DELIM) {
+				int pid = int.Parse(s[1..^1]);
+				Debug.WriteLine("full msg");
+				inter++;
+
+				var args = m_pipe.ToArray();
+				Array.Reverse(args);
+				await parseArgs(args);
+				m_pipe.Clear();
+			}
+			else {
+				m_pipe.Add(s);
+
+			}
+
+			AnsiConsole.Clear();
+			AnsiConsole.Write(new FigletText("Andro"));
+			AnsiConsole.WriteLine($"{m_pipe.Count} msg | {inter}");
+		};
+
+		AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+		{
+			Console.WriteLine($"{sender} {args.ExceptionObject}");
+		};
 	}
+
+	public static  AdbcDevice            Device { get; } = new AdbcDevice();
+	private static ConcurrentBag<string> m_pipe = new ConcurrentBag<string>();
+
+	[DllImport("kernel32.dll")]
+	public static extern IntPtr GetConsoleWindow();
+
+	[DllImport("user32.dll")]
+	public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+	const int SW_HIDE = 0;
 
 	public static async Task<int> Main(string[] args)
 	{
+
 #if TEST
 #endif
-
 #if DEBUG
 #endif
 
-		Trace.WriteLine($"{args.QuickJoin()}");
-
-		await parseArgs(args);
-
-		if (mutex.WaitOne(TimeSpan.Zero, true)) {
-			// This instance acquired the mutex, it's the first instance.
-			// Continue with your application logic here.
-
-			using IHost h = Host.CreateDefaultBuilder()
-				.ConfigureHostOptions((a, b) =>
-				{
-					a.HostingEnvironment.ApplicationName = R1.Name;
-				})
-				.ConfigureLogging((a, b) => { })
-				.Build();
-
-			/*
-			 * Setup
-			 */
-
-			Console.Title = R1.Name;
-
-			// ...
-			OnPipeMessage += s =>
+		/*
+		using IHost h = Host.CreateDefaultBuilder()
+			.ConfigureHostOptions((a, b) =>
 			{
-				Console.WriteLine($"pi: {s}");
-			};
+				a.HostingEnvironment.ApplicationName = R1.Name;
+			})
+			.ConfigureLogging((a, b) => { })
+			.Build();
+			*/
 
-			// Release the mutex when your application is done.
-			var ht = h.RunAsync();
-			mutex.ReleaseMutex();
+		Console.Title = R1.Name;
 
-			StartServer();
+		var b = mutex.WaitOne(TimeSpan.Zero, true);
 
-			await ht;
-			return 0;
+		if (b) {
+			try {
+
+				await parseArgs(args);
+				AnsiConsole.Clear();
+				AnsiConsole.Write(new FigletText("Andro"));
+				AnsiConsole.WriteLine($"{m_pipe.Count} msg");
+				StartServer();
+
+				await Task.Delay(-1);
+			}
+			finally {
+				mutex.ReleaseMutex();
+			}
 		}
 		else {
-			// Another instance is already running.
-			// You can choose to intercept data here or take other actions.
-			Console.WriteLine($"Another instance is already running. {args.QuickJoin()}");
-			// Console.ReadKey();
+			AnsiConsole.WriteLine($">> {args.Length} to process");
 			SendMessage(args);
-
 		}
 
 		return 0;
 	}
+
+	class SingleGlobalInstance : IDisposable
+	{
+		//edit by user "jitbit" - renamed private fields to "_"
+		public bool _hasHandle = false;
+		Mutex       _mutex;
+
+		private void InitMutex()
+		{
+			string appGuid = ((GuidAttribute) Assembly.GetExecutingAssembly()
+					                 .GetCustomAttributes(typeof(GuidAttribute), false).GetValue(0)).Value;
+			string mutexId = string.Format("Global\\{{{0}}}", appGuid);
+			_mutex = new Mutex(false, mutexId);
+
+			var allowEveryoneRule = new MutexAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null),
+			                                            MutexRights.FullControl, AccessControlType.Allow);
+			var securitySettings = new MutexSecurity();
+			securitySettings.AddAccessRule(allowEveryoneRule);
+			_mutex.SetAccessControl(securitySettings);
+		}
+
+		public SingleGlobalInstance(int timeOut)
+		{
+			InitMutex();
+
+			try {
+				if (timeOut < 0)
+					_hasHandle = _mutex.WaitOne(Timeout.Infinite, false);
+				else
+					_hasHandle = _mutex.WaitOne(timeOut, false);
+
+				if (_hasHandle == false)
+					throw new TimeoutException("Timeout waiting for exclusive access on SingleInstance");
+			}
+			catch (AbandonedMutexException) {
+				_hasHandle = true;
+			}
+		}
+
+		public void Dispose()
+		{
+			if (_mutex != null) {
+				if (_hasHandle)
+					_mutex.ReleaseMutex();
+				_mutex.Close();
+			}
+		}
+	}
+
+	private static Semaphore semaphore;
+	static         Mutex     mutex = new Mutex(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
 
 	static async Task parseArgs(string[] args)
 	{
@@ -112,10 +202,34 @@ public static class Program
 				continue;
 			}
 
+			if (v == R2.Arg_Push) {
+				var f = (string) e.MoveAndGet();
+				var d = (string) e.MoveAndGet();
+				d ??= "sdcard/";
+				f =   f.CleanString();
+				d =   d.CleanString();
+				var x = await Device.Push(f, d);
+
+				continue;
+			}
+
+			if (v == R2.Arg_Clipboard) {
+				var d = (string) e.MoveAndGet();
+
+				Clipboard.Open();
+				var f = Clipboard.GetDragQueryList();
+
+				await Parallel.ForEachAsync(f, async (s, token) =>
+				{
+					var x = await Device.Push(s, "sdcard/");
+				});
+
+				Clipboard.Close();
+
+				continue;
+			}
 		}
 	}
-
-	static Mutex mutex = new Mutex(true, SingleGuid);
 
 	/// <summary>
 	/// This identifier must be unique for each application.
@@ -141,7 +255,10 @@ public static class Program
 				stream.WriteLine(s);
 			}
 
-			stream.Write($"{ARGS_DELIM}{ProcessHelper.GetParent().Id}");
+			stream.Write(ARGS_DELIM);
+			stream.Write(ProcessHelper.GetParent().Id);
+			stream.Write('\0');
+			stream.WriteLine();
 		}
 	}
 
@@ -163,6 +280,8 @@ public static class Program
 					var v = sr.ReadLine();
 					OnPipeMessage?.Invoke(v);
 				}
+
+				// OnPipeMessage?.Invoke(null);
 
 				PipeServer.Disconnect();
 			}

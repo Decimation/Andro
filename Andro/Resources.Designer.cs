@@ -61,6 +61,15 @@ namespace Andro {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to -c.
+        /// </summary>
+        internal static string Arg_Clipboard {
+            get {
+                return ResourceManager.GetString("Arg_Clipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to -ctx-menu.
         /// </summary>
         internal static string Arg_CtxMenu {
@@ -129,6 +138,24 @@ namespace Andro {
         internal static string Reg_Shell_Main_Cmd {
             get {
                 return ResourceManager.GetString("Reg_Shell_Main_Cmd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\Second.
+        /// </summary>
+        internal static string Reg_Shell_Snd {
+            get {
+                return ResourceManager.GetString("Reg_Shell_Snd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro\shell\Second\command.
+        /// </summary>
+        internal static string Reg_Shell_Snd_Cmd {
+            get {
+                return ResourceManager.GetString("Reg_Shell_Snd_Cmd", resourceCulture);
             }
         }
     }

@@ -6,6 +6,10 @@
     "Profile 1": {
       "commandName": "Project",
       "commandLineArgs": "-ctx-menu"
+    },
+    "Profile 2": {
+      "commandName": "Project",
+      "commandLineArgs": "-p \"C:\\Users\\Deci\\Downloads\\Shego_LQ.jpg\""
     }
   }
 }

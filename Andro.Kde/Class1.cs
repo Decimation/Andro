@@ -1,7 +1,6 @@
-﻿namespace Andro.Kde
-{
-	public class Class1
-	{
+﻿namespace Andro.Kde;
 
-	}
+public class Class1
+{
+
 }
