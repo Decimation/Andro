@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Andro.Adb.Utilities;
 using Andro.Adb.Utilities;
 
@@ -51,7 +52,7 @@ public class AdbDevice : ITransportFactory
 	public async Task<List<string>> list(string rp)
 	{
 		using var t = await GetTransport();
-		var t2 = await t.startSync();
+		var t2 = await t.StartSyncAsync();
 		await t2.Send("LIST", rp);
 		var x = await t2.ReadString(Transport.SZ_LEN);
 
@@ -64,7 +65,7 @@ public class AdbDevice : ITransportFactory
 		await t.VerifyAsync();
 	}
 
-	public async Task<AdbFilterInputStream> ShellAsync(string cmd, IEnumerable<string>? args = null)
+	public async Task<string> ShellAsync(string cmd, IEnumerable<string>? args = null)
 	{
 		args ??= Enumerable.Empty<string>();
 		var cmd2 = $"{cmd} {string.Join(' ', args.Select(AdbHelper.Escape))}";
@@ -80,7 +81,7 @@ public class AdbDevice : ITransportFactory
 		// return output;
 		var t = await GetTransport();
 		await SendAsync(t, $"{R.Cmd_Shell}{cmd2}");
-		return new AdbFilterInputStream(t.NetworkStream);
+		return await t.Reader.ReadToEndAsync();
 	}
 
 	public override string ToString()

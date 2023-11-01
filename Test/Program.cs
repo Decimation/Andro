@@ -8,7 +8,7 @@ public static class Program
 {
 	public static async Task Main(string[] args)
 	{
-		await Test1();
+		await Test2();
 	}
 
 	private static async Task Test2()
@@ -17,11 +17,9 @@ public static class Program
 		var t2 = await d.GetDevicesAsync();
 		var dd = t2[0];
 
-		var l = await dd.list("sdcard/Download");
-
-		foreach (string s in l) {
-			Console.WriteLine(s);
-		}
+		var l = await dd.ShellAsync( "ls",new[]{ "sdcard/Download" });
+		Console.WriteLine(l);
+		
 	}
 
 	private static async Task Test1()

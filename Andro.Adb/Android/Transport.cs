@@ -36,9 +36,14 @@ namespace Andro.Adb.Android;
 
 public class Transport : IDisposable
 {
+
 	#region
 
-	public const int SZ_LEN = sizeof(uint);
+	public const int    SZ_LEN = sizeof(uint);
+
+	public const string S_OKAY = "OKAY";
+	
+	public const string S_FAIL = "FAIL";
 
 	#endregion
 
@@ -71,48 +76,47 @@ public class Transport : IDisposable
 		await sock.ConnectAsync("localhost", 5037);*/
 	}
 
-	public async Task SendAsync(string s, CancellationToken? t = null)
+	public async Task SendAsync(string s, CancellationToken t = default)
 	{
-		t ??= CancellationToken.None;
 		string s2 = AdbHelper.GetPayload(s, out byte[] rg, out var rg2);
 
 		// await NetworkStream.WriteAsync(rg2, t.Value);
 		// await NetworkStream.FlushAsync(t.Value);
 
-		await Tcp.Client.SendAsync(rg2, t.Value);
+		await Tcp.Client.SendAsync(rg2, t);
 
 		return;
 	}
 
-	public async Task<SyncTransport> startSync()
+	public async Task<SyncTransport> StartSyncAsync()
 	{
 		await SendAsync("sync:");
 		await VerifyAsync();
 		return new SyncTransport(Reader, Writer);
 	}
 
-	public async Task<int> ReadInt()
+	public async ValueTask<int> ReadIntAsync(CancellationToken t = default)
 	{
 		var buffers = new byte[sizeof(int)];
-		var s = await Tcp.Client.ReceiveAsync(buffers);
-		var val = BinaryPrimitives.ReverseEndianness(BitConverter.ToInt32(buffers));
+		var s       = await Tcp.Client.ReceiveAsync(buffers, t);
+		var val     = BinaryPrimitives.ReverseEndianness(BitConverter.ToInt32(buffers));
 		return val;
 	}
 
-	public async Task<string> ReadStringAsync()
+	public async ValueTask<string> ReadStringAsync(CancellationToken ct = default)
 	{
-		var l = await ReadStringAsync(SZ_LEN);
+		var l  = await ReadStringAsync(SZ_LEN, ct);
 		var l2 = int.Parse(l, NumberStyles.HexNumber);
-		return await ReadStringAsync(l2);
+		return await ReadStringAsync(l2, ct);
 
 	}
 
-	public async Task<string> ReadStringAsync(int l)
+	public async ValueTask<string> ReadStringAsync(int l, CancellationToken ct = default)
 	{
 		var buf = new byte[l];
 		// var l2  = await NetworkStream.ReadAsync(buf);
 
-		var l2 = await Tcp.Client.ReceiveAsync(buf);
+		var l2 = await Tcp.Client.ReceiveAsync(buf, ct);
 
 		var s = AdbHelper.Encoding.GetString(buf);
 
@@ -120,20 +124,20 @@ public class Transport : IDisposable
 	}
 
 	/// <remarks>Connection terminates after command</remarks>
-	public async ValueTask<string> GetDevicesAsync()
+	public async ValueTask<string> GetDevicesAsync(CancellationToken t = default)
 	{
 		// NOTE: host:devices closes connection after
-		await SendAsync(R.Cmd_Devices);
+		await SendAsync(R.Cmd_Devices, t);
 		await VerifyAsync();
-		var s = await ReadStringAsync();
+		var s = await ReadStringAsync(t);
 		return s;
 	}
 
-	public async ValueTask<string> TrackDevicesAsync()
+	public async ValueTask<string> TrackDevicesAsync(CancellationToken t = default)
 	{
-		await SendAsync(R.Cmd_TrackDevices);
+		await SendAsync(R.Cmd_TrackDevices, t);
 		await VerifyAsync();
-		var s = await ReadStringAsync();
+		var s = await ReadStringAsync(t);
 		return s;
 	}
 
@@ -144,23 +148,21 @@ public class Transport : IDisposable
 		return await ReadStringAsync(SZ_LEN);
 	}
 
-	public async ValueTask<AdbResponse> VerifyAsync(Predicate<string> f = null, bool throws = true)
+	public async ValueTask<AdbResponse> VerifyAsync(bool throws = true, CancellationToken t = default)
 	{
-		var res = await ReadStringAsync(SZ_LEN);
+		var res = await ReadStringAsync(SZ_LEN, t);
 
 		string msg = res;
-		bool? b = null;
+		bool?  b   = null;
 
-		switch (res)
-		{
-			case "OKAY":
+		switch (res) {
+			case S_OKAY:
 				b = true;
 				break;
-			case "FAIL":
-				msg = await ReadStringAsync();
+			case S_FAIL:
+				msg = await ReadStringAsync(t);
 
-				if (throws)
-				{
+				if (throws) {
 					throw new AdbException(msg);
 				}
 
@@ -172,14 +174,14 @@ public class Transport : IDisposable
 				if (throws) {
 					throw new AdbException(msg);
 				}*/
-				b = f?.Invoke(res);
+				// b = f?.Invoke(res);
 				break;
 		}
 
 		return new AdbResponse()
 		{
 			Message = msg,
-			Ok = b
+			Ok      = b
 		};
 	}
 
@@ -191,4 +193,5 @@ public class Transport : IDisposable
 		Writer.Dispose();
 		NetworkStream.Dispose();
 	}
+
 }
