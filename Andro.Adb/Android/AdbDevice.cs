@@ -41,22 +41,12 @@ public class AdbDevice : ITransportFactory
 		return t;
 	}
 
-	public async Task<AdbDeviceState> GetStateAsync()
+	public async ValueTask<AdbDeviceState> GetStateAsync()
 	{
 		using var t = await m_factory.GetTransport();
 
 		await SendAsync(t, Serial == null ? "host:get-state" : $"host-serial:{Serial}:get-state");
 		return AdbHelper.ConvertState(await t.ReadStringAsync());
-	}
-
-	public async Task<List<string>> list(string rp)
-	{
-		using var t = await GetTransport();
-		var t2 = await t.StartSyncAsync();
-		await t2.Send("LIST", rp);
-		var x = await t2.ReadString(Transport.SZ_LEN);
-
-		return default;
 	}
 
 	private async Task SendAsync(Transport t, string c)
@@ -65,7 +55,7 @@ public class AdbDevice : ITransportFactory
 		await t.VerifyAsync();
 	}
 
-	public async Task<string> ShellAsync(string cmd, IEnumerable<string>? args = null)
+	public async ValueTask<string> ShellAsync(string cmd, IEnumerable<string>? args = null)
 	{
 		args ??= Enumerable.Empty<string>();
 		var cmd2 = $"{cmd} {string.Join(' ', args.Select(AdbHelper.Escape))}";
