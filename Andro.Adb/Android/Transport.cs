@@ -70,7 +70,7 @@ public class Transport : IDisposable
 		Writer = new StreamWriter(NetworkStream);
 		Reader = new StreamReader(NetworkStream);
 
-		Writer.AutoFlush = true;
+		// Writer.AutoFlush = true;
 
 		/*var sock = new Socket(SocketType.Stream, ProtocolType.Tcp) { };
 		await sock.ConnectAsync("localhost", 5037);*/
@@ -84,16 +84,16 @@ public class Transport : IDisposable
 		// await NetworkStream.FlushAsync(t.Value);
 
 		await Tcp.Client.SendAsync(rg2, t);
-
+		
 		return;
 	}
 
-	public async Task<SyncTransport> StartSyncAsync()
+	/*public async Task<SyncTransport> StartSyncAsync()
 	{
 		await SendAsync("sync:");
 		await VerifyAsync();
 		return new SyncTransport(Reader, Writer);
-	}
+	}*/
 
 	public async ValueTask<int> ReadIntAsync(CancellationToken t = default)
 	{
@@ -117,7 +117,7 @@ public class Transport : IDisposable
 		// var l2  = await NetworkStream.ReadAsync(buf);
 
 		var l2 = await Tcp.Client.ReceiveAsync(buf, ct);
-
+		
 		var s = AdbHelper.Encoding.GetString(buf);
 
 		return s;

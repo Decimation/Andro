@@ -13,13 +13,17 @@ public static class Program
 
 	private static async Task Test2()
 	{
+		a:
 		var d  = new AdbConnection();
 		var t2 = await d.GetDevicesAsync();
 		var dd = t2[0];
 
-		var l = await dd.ShellAsync( "ls",new[]{ "sdcard/Download" });
-		Console.WriteLine(l);
-		
+		/*var l = await dd.ShellAsync( "ls",new[]{ "sdcard/Download" });
+		Console.WriteLine(l);*/
+
+		await dd.SyncPrep("sdcard/Download", "LIST");
+		Console.ReadKey();
+		goto a;
 	}
 
 	private static async Task Test1()
