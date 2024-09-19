@@ -97,6 +97,15 @@ namespace Andro {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to -send-to.
+        /// </summary>
+        internal static string Arg_SendTo {
+            get {
+                return ResourceManager.GetString("Arg_SendTo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to SOFTWARE\Classes\*\shell\Andro.
         /// </summary>
         internal static string Reg_Shell {

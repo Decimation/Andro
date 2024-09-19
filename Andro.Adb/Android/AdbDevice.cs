@@ -15,6 +15,7 @@ namespace Andro.Adb.Android;
 
 public class AdbDevice : ITransportFactory
 {
+	public const string SDCARD = "sdcard/";
 
 	public string? Serial { get; }
 

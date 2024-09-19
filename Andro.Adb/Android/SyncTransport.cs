@@ -6,31 +6,40 @@ using System.Threading.Tasks;
 
 namespace Andro.Adb.Android;
 
-public class SyncTransport
+public class SyncTransport : IDisposable
 {
-	private StreamReader m_reader;
-	private StreamWriter m_writer;
+
+	public StreamReader Reader { get; }
+
+	public StreamWriter Writer { get; }
 
 	public SyncTransport(StreamReader reader, StreamWriter writer)
 	{
-		m_reader = reader;
-		m_writer = writer;
+		Reader = reader;
+		Writer = writer;
 	}
 
-	public async Task Send(string cmd, string name)
+	public Task SendAsync(string cmd, string name)
 	{
-		if (cmd.Length != Transport.SZ_LEN)
-		{
+		if (cmd.Length != Transport.SZ_LEN) {
 			throw new ArgumentException();
 		}
 
-		await m_writer.WriteAsync(cmd);
+		return Writer.WriteAsync(cmd);
 	}
 
-	public async ValueTask<string> ReadString(int l)
+	public async ValueTask<string> ReadStringAsync(int l)
 	{
 		var buf = new byte[l];
-		await m_reader.BaseStream.ReadAsync(buf);
-		return AdbHelper.Encoding.GetString(buf);
+		var res = await Reader.BaseStream.ReadAsync(buf);
+
+		return AdbHelper.Encoding.GetString(buf, 0, res);
 	}
+
+	public void Dispose()
+	{
+		Reader.Dispose();
+		Writer.Dispose();
+	}
+
 }

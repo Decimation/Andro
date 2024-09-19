@@ -4,6 +4,8 @@ namespace Andro.Adb.Android;
 
 public class AdbFilterInputStream : FilterInputStream
 {
+	//todo
+
 	public AdbFilterInputStream(InputStream s) : base(s) { }
 
 	public new Stream BaseStream => base.BaseStream;

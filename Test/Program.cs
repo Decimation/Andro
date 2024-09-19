@@ -8,9 +8,10 @@ public static class Program
 {
 	public static async Task Main(string[] args)
 	{
-		await Test2();
+		// await Test2();
 	}
 
+	/*
 	private static async Task Test2()
 	{
 		a:
@@ -19,12 +20,13 @@ public static class Program
 		var dd = t2[0];
 
 		/*var l = await dd.ShellAsync( "ls",new[]{ "sdcard/Download" });
-		Console.WriteLine(l);*/
+		Console.WriteLine(l);#1#
 
 		await dd.SyncPrep("sdcard/Download", "LIST");
 		Console.ReadKey();
 		goto a;
 	}
+	*/
 
 	private static async Task Test1()
 	{

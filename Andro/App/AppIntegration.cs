@@ -19,7 +19,7 @@ public static class AppIntegration
 	 *		HKEY_LOCAL_MACHINE\Software\Classes
 	 */
 
-	public static string ExeLocation => FileSystem.FindExecutableLocation(R1.NameExe)!;
+	public static string ExeLocation => FileSystem.FindExecutableLocation(R1.NameExe);
 
 	internal const string STRING_FORMAT_ARG = "str";
 

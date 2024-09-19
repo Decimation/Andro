@@ -1,4 +1,5 @@
 ﻿using System.Text;
+
 // ReSharper disable BuiltInTypeReferenceStyleForMemberAccess
 #pragma warning disable IDE0049
 
@@ -6,7 +7,8 @@ namespace Andro.Adb.Android;
 
 public static class AdbHelper
 {
-	public static readonly Encoding Encoding = Encoding.UTF8;
+
+	public static Encoding Encoding { get; set; } = Encoding.UTF8;
 
 	public static string GetPayload(string s, out byte[] rg, out byte[] rg2)
 	{
@@ -25,8 +27,7 @@ public static class AdbHelper
 
 	internal static AdbDeviceState ConvertState(string type)
 	{
-		if (string.IsNullOrWhiteSpace(type))
-		{
+		if (string.IsNullOrWhiteSpace(type)) {
 			return AdbDeviceState.Unknown;
 		}
 
@@ -49,4 +50,5 @@ public static class AdbHelper
 			_              => State.Unknown
 		};*/
 	}
+
 }

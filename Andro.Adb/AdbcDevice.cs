@@ -8,23 +8,19 @@ namespace Andro.Adb;
 
 public class AdbcDevice
 {
-	public string Id { get; }
 
 	public static Command Adbc = CliWrap.Cli.Wrap("adb");
 
-	public static async Task<AdbcDevice> Get()
+	public static Task<CommandResult> Push(string f, string d, PipeTarget stdOut, CancellationToken ct = default)
 	{
-		return new AdbcDevice(); //todo
+		// var sb = new StringBuilder();
+
+		var r = Adbc.WithArguments($"push \"{f}\" \"{d}\"")
+			.WithStandardOutputPipe(stdOut)
+			.ExecuteAsync(ct);
+
+		return r;
+
 	}
 
-	public async Task<string> Push(string f, string d)
-	{
-		var sb = new StringBuilder();
-
-		var r = await Adbc.WithArguments($"push \"{f}\" \"{d}\"")
-			        .WithStandardOutputPipe(PipeTarget.ToStringBuilder(sb))
-			        .ExecuteAsync();
-
-		return sb.ToString();
-	}
 }

@@ -129,6 +129,9 @@
   <data name="Arg_PushAll" xml:space="preserve">
     <value>-pa</value>
   </data>
+  <data name="Arg_SendTo" xml:space="preserve">
+    <value>-send-to</value>
+  </data>
   <data name="Reg_Shell" xml:space="preserve">
     <value>SOFTWARE\Classes\*\shell\Andro</value>
   </data>

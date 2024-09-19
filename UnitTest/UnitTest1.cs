@@ -1,10 +1,16 @@
+global using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using System.Diagnostics;
 using Andro.Adb.Android;
+using NUnit.Framework;
+
+// ReSharper disable AccessToStaticMemberViaDerivedType
 
 namespace UnitTest;
+
 [TestFixture]
 public class Tests
 {
+
 	[SetUp]
 	public void Setup()
 	{
@@ -38,4 +44,5 @@ public class Tests
 		var o  = (await sr.ReadToEndAsync()).Trim().Trim('\n');
 		Assert.That(o, Is.EqualTo(o2));
 	}
+
 }

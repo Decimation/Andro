@@ -5,7 +5,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Andro.Adb.Android;
 using Andro.App;
-using Andro.Kde;
+
+// using Andro.Kde;
 using Andro.Adb.Properties;
 using Kantan.Collections;
 using Kantan.Text;
@@ -13,14 +14,14 @@ using Microsoft.Extensions.Hosting;
 using Novus.Streams;
 using Spectre.Console;
 using System.IO.Pipes;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.AccessControl;
-using System.Security.Principal;
+using System.Text;
 using Andro.Adb;
 using Novus.Utilities;
 using System.Threading;
+using CliWrap;
 using Novus.Win32;
+using Andro.Kde;
+
 
 // ReSharper disable AssignNullToNotNullAttribute
 
@@ -45,36 +46,35 @@ https://github.com/vidstige/jadb/blob/master/src/se/vidstige/jadb/AdbFilterInput
 
 public static class Program
 {
-	private static bool _createdNew;
-	private const  char CTRL_Z = '\x1A';
-	private static int  inter  = 0;
 
 	static Program()
 	{
 		RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 
-		OnPipeMessage += async s =>
+		AndroPipe.OnPipeMessage += async s =>
 		{
 			// Console.WriteLine($"pi: {s}");
 
-			if (s[0] == ARGS_DELIM) {
+			// TODO: WTF JUST SERIALIZE THE DATA IN A STRUCTURED WAY !!!!!!!!!!!!!!!!
+
+			if (s[0] == AndroPipe.MSG_DELIM) {
 				int pid = int.Parse(s[1..^1]);
 				Debug.WriteLine("full msg");
-				inter++;
+				AndroPipe.Inter++;
 
-				var args = m_pipe.ToArray();
+				var args = AndroPipe.PipeBag.ToArray();
 				Array.Reverse(args);
-				await parseArgs(args);
-				m_pipe.Clear();
+				await ParseArgs(args);
+				AndroPipe.PipeBag.Clear();
 			}
 			else {
-				m_pipe.Add(s);
+				AndroPipe.PipeBag.Add(s);
 
 			}
 
-			AnsiConsole.Clear();
+			/*AnsiConsole.Clear();
 			AnsiConsole.Write(new FigletText("Andro"));
-			AnsiConsole.WriteLine($"{m_pipe.Count} msg | {inter}");
+			AnsiConsole.WriteLine($"{AndroPipe.PipeBag.Count} msg | {AndroPipe.Inter}");*/
 		};
 
 		AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
@@ -82,17 +82,6 @@ public static class Program
 			Console.WriteLine($"{sender} {args.ExceptionObject}");
 		};
 	}
-
-	public static  AdbcDevice            Device { get; } = new AdbcDevice();
-	private static ConcurrentBag<string> m_pipe = new ConcurrentBag<string>();
-
-	[DllImport("kernel32.dll")]
-	public static extern IntPtr GetConsoleWindow();
-
-	[DllImport("user32.dll")]
-	public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-	const int SW_HIDE = 0;
 
 	public static async Task<int> Main(string[] args)
 	{
@@ -114,83 +103,33 @@ public static class Program
 
 		Console.Title = R1.Name;
 
-		var b = mutex.WaitOne(TimeSpan.Zero, true);
+		var b = _mutex.WaitOne(TimeSpan.Zero, true);
 
 		if (b) {
 			try {
 
-				await parseArgs(args);
+				await ParseArgs(args);
 				AnsiConsole.Clear();
 				AnsiConsole.Write(new FigletText("Andro"));
-				AnsiConsole.WriteLine($"{m_pipe.Count} msg");
-				StartServer();
+				AnsiConsole.WriteLine($"{AndroPipe.PipeBag.Count} msg");
+				AndroPipe.StartServer();
 
 				await Task.Delay(-1);
 			}
 			finally {
-				mutex.ReleaseMutex();
+				_mutex.ReleaseMutex();
 			}
 		}
 		else {
 			AnsiConsole.WriteLine($">> {args.Length} to process");
-			SendMessage(args);
+			AndroPipe.SendMessage(args);
 		}
 
 		return 0;
 	}
 
-	class SingleGlobalInstance : IDisposable
-	{
-		//edit by user "jitbit" - renamed private fields to "_"
-		public bool _hasHandle = false;
-		Mutex       _mutex;
 
-		private void InitMutex()
-		{
-			string appGuid = ((GuidAttribute) Assembly.GetExecutingAssembly()
-					                 .GetCustomAttributes(typeof(GuidAttribute), false).GetValue(0)).Value;
-			string mutexId = string.Format("Global\\{{{0}}}", appGuid);
-			_mutex = new Mutex(false, mutexId);
-
-			var allowEveryoneRule = new MutexAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null),
-			                                            MutexRights.FullControl, AccessControlType.Allow);
-			var securitySettings = new MutexSecurity();
-			securitySettings.AddAccessRule(allowEveryoneRule);
-			_mutex.SetAccessControl(securitySettings);
-		}
-
-		public SingleGlobalInstance(int timeOut)
-		{
-			InitMutex();
-
-			try {
-				if (timeOut < 0)
-					_hasHandle = _mutex.WaitOne(Timeout.Infinite, false);
-				else
-					_hasHandle = _mutex.WaitOne(timeOut, false);
-
-				if (_hasHandle == false)
-					throw new TimeoutException("Timeout waiting for exclusive access on SingleInstance");
-			}
-			catch (AbandonedMutexException) {
-				_hasHandle = true;
-			}
-		}
-
-		public void Dispose()
-		{
-			if (_mutex != null) {
-				if (_hasHandle)
-					_mutex.ReleaseMutex();
-				_mutex.Close();
-			}
-		}
-	}
-
-	private static Semaphore semaphore;
-	static         Mutex     mutex = new Mutex(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
-
-	static async Task parseArgs(string[] args)
+	internal static async Task ParseArgs(string[] args)
 	{
 		var e = args.GetEnumerator();
 
@@ -198,97 +137,144 @@ public static class Program
 			var v = (string) e.Current;
 
 			if (v == R2.Arg_CtxMenu) {
-				AppIntegration.HandleContextMenu(!AppIntegration.IsContextMenuAdded);
+				var res = AppIntegration.HandleContextMenu(!AppIntegration.IsContextMenuAdded);
+
+				continue;
+			}
+
+			if (v == R2.Arg_SendTo) {
+				var res = AppIntegration.HandleSendToMenu();
+
+				var sty = AppShell.GetStyleForNullable(res);
+				AnsiConsole.Write(new Text($"Send-to integration: {res}", sty));
+
 				continue;
 			}
 
 			if (v == R2.Arg_Push) {
 				var f = (string) e.MoveAndGet();
 				var d = (string) e.MoveAndGet();
-				d ??= "sdcard/";
+				d ??= AdbDevice.SDCARD;
 				f =   f.CleanString();
 				d =   d.CleanString();
-				var x = await Device.Push(f, d);
+				var sb = new StringBuilder();
+
+				var x = await AdbcDevice.Push(f, d, PipeTarget.ToStringBuilder(sb));
+
+				if (x.IsSuccess) {
+					AnsiConsole.WriteLine($"{x} : {sb}");
+				}
 
 				continue;
 			}
 
 			if (v == R2.Arg_Clipboard) {
 				var d = (string) e.MoveAndGet();
-
+				Debug.WriteLine($"clipboard arg mag : {d}");
 				Clipboard.Open();
-				var f = Clipboard.GetDragQueryList();
+				var cbDragQuery = Clipboard.GetDragQueryList();
 
-				await Parallel.ForEachAsync(f, async (s, token) =>
+				await Parallel.ForEachAsync(cbDragQuery, async (s, token) =>
 				{
-					var x = await Device.Push(s, "sdcard/");
+					var sb = new StringBuilder();
+					var cr = await AdbcDevice.Push(s, AdbDevice.SDCARD, PipeTarget.ToStringBuilder(sb), token);
+
+					if (cr.IsSuccess) {
+						// ...
+					}
+					else { }
 				});
 
 				Clipboard.Close();
 
 				continue;
 			}
+
+			if (v == R2.Arg_PushAll) {
+				Debugger.Break();
+				/*
+				case PUSH_ALL:
+
+				var filesIdx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
+				var files    = args[filesIdx..];
+
+				var progress = AnsiConsole.Progress().Columns(new ProgressColumn[]
+				{
+					new TaskDescriptionColumn(), // Task description
+					new ProgressBarColumn(),     // Progress bar
+					new PercentageColumn(),      // Percentage
+					new SpinnerColumn(),         // Spinner
+				}).AutoRefresh(true);
+
+				var t = progress.StartAsync(async (context) =>
+				{
+					var pt = context.AddTask("Send", false, files.Length);
+
+					var k = await KdeConnect.InitAsync();
+					int n = 0;
+
+					Action<string> handler = (x) =>
+					{
+						n++;
+						// pt.Value += ()*100D;
+						pt.Increment(n);
+					};
+
+					var prg = new Progress<string>(handler)
+						{ };
+					pt.StartTask();
+					var ff = await k.SendAsync(files, prg);
+					pt.StopTask();
+
+					return;
+				});
+				await t;
+
+				break;
+			*/
+				var filesIdx = Array.IndexOf(args, R2.Arg_PushAll, 0) + 1;
+				var files    = args[filesIdx..];
+
+				var progress = AnsiConsole.Progress().Columns(new ProgressColumn[]
+				{
+					new TaskDescriptionColumn(), // Task description
+					new ProgressBarColumn(),     // Progress bar
+					new PercentageColumn(),      // Percentage
+					new SpinnerColumn(),         // Spinner
+				}).AutoRefresh(true);
+
+				var t = progress.StartAsync(async (context) =>
+				{
+					var pt = context.AddTask("Send", false, files.Length);
+
+					var k = await KdeConnect.InitAsync();
+					int n = 0;
+
+					Action<string> handler = (x) =>
+					{
+						n++;
+
+						// pt.Value += ()*100D;
+						pt.Increment(n);
+					};
+
+					var prg = new Progress<string>(handler)
+						{ };
+					pt.StartTask();
+					var ff = await k.SendAsync(files, prg);
+					pt.StopTask();
+
+					return;
+				});
+				await t;
+			}
 		}
 	}
 
-	/// <summary>
-	/// This identifier must be unique for each application.
-	/// </summary>
-	public const string SingleGuid = "{910e8c27-ab31-4043-9c5d-1382707e6c93}";
+	public static AdbcDevice Device { get; } = new AdbcDevice();
 
-	public const string IPC_PIPE_NAME = "SIPC";
+	private const char CTRL_Z = '\x1A';
 
-	public const char ARGS_DELIM = '\0';
+	private static readonly Mutex _mutex    = new(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
 
-	public static NamedPipeServerStream PipeServer { get; private set; }
-
-	public static Thread PipeThread { get; private set; }
-
-	private static void SendMessage(string[] e)
-	{
-
-		using (var pipe = new NamedPipeClientStream(".", IPC_PIPE_NAME, PipeDirection.Out))
-		using (var stream = new StreamWriter(pipe)) {
-			pipe.Connect();
-
-			foreach (var s in e) {
-				stream.WriteLine(s);
-			}
-
-			stream.Write(ARGS_DELIM);
-			stream.Write(ProcessHelper.GetParent().Id);
-			stream.Write('\0');
-			stream.WriteLine();
-		}
-	}
-
-	public delegate void PipeMessageCallback(string s);
-
-	public static event PipeMessageCallback OnPipeMessage;
-
-	private static void StartServer()
-	{
-		PipeServer = new NamedPipeServerStream(IPC_PIPE_NAME, PipeDirection.In);
-
-		PipeThread = new Thread(() =>
-		{
-			while (true) {
-				PipeServer.WaitForConnection();
-				var sr = new StreamReader(PipeServer);
-
-				while (!sr.EndOfStream) {
-					var v = sr.ReadLine();
-					OnPipeMessage?.Invoke(v);
-				}
-
-				// OnPipeMessage?.Invoke(null);
-
-				PipeServer.Disconnect();
-			}
-		})
-		{
-			IsBackground = true
-		};
-		PipeThread.Start();
-	}
 }
