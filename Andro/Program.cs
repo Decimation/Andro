@@ -64,7 +64,7 @@ public static class Program
 
 				var args = AndroPipe.PipeBag.ToArray();
 				Array.Reverse(args);
-				await ParseArgs(args);
+				await ParseArgsAsync(args);
 				AndroPipe.PipeBag.Clear();
 			}
 			else {
@@ -77,11 +77,20 @@ public static class Program
 			AnsiConsole.WriteLine($"{AndroPipe.PipeBag.Count} msg | {AndroPipe.Inter}");*/
 		};
 
+		Console.CancelKeyPress += (sender, args) =>
+		{
+			Debug.WriteLine($"{sender} {args} ctrl-c");
+
+			Cts.Cancel();
+		};
+
 		AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
 		{
-			Console.WriteLine($"{sender} {args.ExceptionObject}");
+			AnsiConsole.WriteLine($"{sender} {args.ExceptionObject}");
 		};
 	}
+
+	public static readonly CancellationTokenSource Cts = new();
 
 	public static async Task<int> Main(string[] args)
 	{
@@ -106,15 +115,19 @@ public static class Program
 		var b = _mutex.WaitOne(TimeSpan.Zero, true);
 
 		if (b) {
+
+
 			try {
 
-				await ParseArgs(args);
+				await ParseArgsAsync(args);
+
 				AnsiConsole.Clear();
 				AnsiConsole.Write(new FigletText("Andro"));
 				AnsiConsole.WriteLine($"{AndroPipe.PipeBag.Count} msg");
 				AndroPipe.StartServer();
 
-				await Task.Delay(-1);
+				await Task.Delay(-1, Cts.Token);
+
 			}
 			finally {
 				_mutex.ReleaseMutex();
@@ -129,7 +142,8 @@ public static class Program
 	}
 
 
-	internal static async Task ParseArgs(string[] args)
+
+	internal static async Task ParseArgsAsync(string[] args)
 	{
 		var e = args.GetEnumerator();
 
@@ -138,9 +152,12 @@ public static class Program
 
 			if (v == R2.Arg_CtxMenu) {
 				var res = AppIntegration.HandleContextMenu(!AppIntegration.IsContextMenuAdded);
-
+				var sty = AppShell.GetStyleForNullable(res);
+				AnsiConsole.Write(new Text($"Context menu integration: {res}", sty));
 				continue;
 			}
+
+			
 
 			if (v == R2.Arg_SendTo) {
 				var res = AppIntegration.HandleSendToMenu();
@@ -157,9 +174,15 @@ public static class Program
 				d ??= AdbDevice.SDCARD;
 				f =   f.CleanString();
 				d =   d.CleanString();
-				var sb = new StringBuilder();
 
-				var x = await AdbcDevice.Push(f, d, PipeTarget.ToStringBuilder(sb));
+				var sb  = new StringBuilder();
+				var sb2 = new StringBuilder();
+
+				var cmd = AdbShell.BuildPush(f, d,
+				                             PipeTarget.ToStringBuilder(sb),
+				                             PipeTarget.ToStringBuilder(sb2));
+
+				var x = await cmd.ExecuteAsync();
 
 				if (x.IsSuccess) {
 					AnsiConsole.WriteLine($"{x} : {sb}");
@@ -176,13 +199,18 @@ public static class Program
 
 				await Parallel.ForEachAsync(cbDragQuery, async (s, token) =>
 				{
-					var sb = new StringBuilder();
-					var cr = await AdbcDevice.Push(s, AdbDevice.SDCARD, PipeTarget.ToStringBuilder(sb), token);
+					var sb  = new StringBuilder();
+					var sb2 = new StringBuilder();
 
-					if (cr.IsSuccess) {
+					var cmd = AdbShell.BuildPush(s, AdbDevice.SDCARD,
+					                             PipeTarget.ToStringBuilder(sb),
+					                             PipeTarget.ToStringBuilder(sb2));
+
+					var x = await cmd.ExecuteAsync(token);
+
+					if (x.IsSuccess) {
 						// ...
 					}
-					else { }
 				});
 
 				Clipboard.Close();
@@ -191,47 +219,8 @@ public static class Program
 			}
 
 			if (v == R2.Arg_PushAll) {
-				Debugger.Break();
-				/*
-				case PUSH_ALL:
+				// Debugger.Break();
 
-				var filesIdx = Array.IndexOf(args, PUSH_ALL, 0) + 1;
-				var files    = args[filesIdx..];
-
-				var progress = AnsiConsole.Progress().Columns(new ProgressColumn[]
-				{
-					new TaskDescriptionColumn(), // Task description
-					new ProgressBarColumn(),     // Progress bar
-					new PercentageColumn(),      // Percentage
-					new SpinnerColumn(),         // Spinner
-				}).AutoRefresh(true);
-
-				var t = progress.StartAsync(async (context) =>
-				{
-					var pt = context.AddTask("Send", false, files.Length);
-
-					var k = await KdeConnect.InitAsync();
-					int n = 0;
-
-					Action<string> handler = (x) =>
-					{
-						n++;
-						// pt.Value += ()*100D;
-						pt.Increment(n);
-					};
-
-					var prg = new Progress<string>(handler)
-						{ };
-					pt.StartTask();
-					var ff = await k.SendAsync(files, prg);
-					pt.StopTask();
-
-					return;
-				});
-				await t;
-
-				break;
-			*/
 				var filesIdx = Array.IndexOf(args, R2.Arg_PushAll, 0) + 1;
 				var files    = args[filesIdx..];
 
@@ -247,34 +236,61 @@ public static class Program
 				{
 					var pt = context.AddTask("Send", false, files.Length);
 
-					var k = await KdeConnect.InitAsync();
 					int n = 0;
 
-					Action<string> handler = (x) =>
-					{
-						n++;
-
-						// pt.Value += ()*100D;
-						pt.Increment(n);
-					};
-
+					/*
 					var prg = new Progress<string>(handler)
 						{ };
+					*/
 					pt.StartTask();
-					var ff = await k.SendAsync(files, prg);
+
+					await Parallel.ForEachAsync(files, async (s, token) =>
+					{
+						var sb  = new StringBuilder();
+						var sb2 = new StringBuilder();
+
+						var dest = AdbDevice.SDCARD;
+
+						var cmd = AdbShell.BuildPush(s, dest,
+						                             PipeTarget.ToStringBuilder(sb),
+						                             PipeTarget.ToStringBuilder(sb2));
+
+						var desc     = $"{s} {Strings.Constants.ARROW_RIGHT} {dest}";
+						var fileTask = context.AddTask(desc, false);
+						fileTask.IsIndeterminate = true;
+						fileTask.StartTask();
+
+						// fileTask.Increment(50D);
+						var result = await cmd.ExecuteAsync(token);
+
+
+						if (result.IsSuccess) {
+							n++;
+							pt.Increment(n);
+							fileTask.Description = $"{desc} {Strings.Constants.HEAVY_CHECK_MARK}";
+						}
+
+						fileTask.IsIndeterminate = false;
+						fileTask.Increment(100D);
+
+						// fileTask.Increment(50D);
+						fileTask.StopTask();
+
+					});
 					pt.StopTask();
 
 					return;
 				});
 				await t;
+				continue;
 			}
 		}
 	}
 
-	public static AdbcDevice Device { get; } = new AdbcDevice();
+	// public static AdbShell Device { get; } = new AdbShell();
 
 	private const char CTRL_Z = '\x1A';
 
-	private static readonly Mutex _mutex    = new(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
+	private static readonly Mutex _mutex = new(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
 
 }

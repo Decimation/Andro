@@ -132,7 +132,7 @@ public static class AppIntegration
 				// link.SetDescription("My Description");
 				link.SetPath(ExeLocation);
 				link.SetArguments(R2.Arg_PushAll);
-
+				
 				// save it
 				var file = (IPersistFile) link;
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
