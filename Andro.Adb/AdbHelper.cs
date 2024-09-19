@@ -1,9 +1,10 @@
 ﻿using System.Text;
+using Andro.Adb.Android;
 
 // ReSharper disable BuiltInTypeReferenceStyleForMemberAccess
 #pragma warning disable IDE0049
 
-namespace Andro.Adb.Android;
+namespace Andro.Adb;
 
 public static class AdbHelper
 {
@@ -23,7 +24,7 @@ public static class AdbHelper
 		return e.Replace(" ", "' '");
 	}
 
-	private static readonly AdbDeviceState[] DeviceStatesValues = Enum.GetValues<AdbDeviceState>();
+	private static readonly AdbDeviceState[] s_deviceStatesValues = Enum.GetValues<AdbDeviceState>();
 
 	internal static AdbDeviceState ConvertState(string type)
 	{
@@ -31,7 +32,7 @@ public static class AdbHelper
 			return AdbDeviceState.Unknown;
 		}
 
-		var s = DeviceStatesValues.FirstOrDefault(
+		var s = s_deviceStatesValues.FirstOrDefault(
 			r => type.Equals(r.ToString(), StringComparison.InvariantCultureIgnoreCase));
 
 		return s;

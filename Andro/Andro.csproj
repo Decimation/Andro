@@ -8,7 +8,7 @@
     <LangVersion>latest</LangVersion>
     <TargetFramework>net8.0-windows10.0.22000.0</TargetFramework>
     <!-- <RuntimeIdentifier>win10-x64</RuntimeIdentifier> -->
-    <ApplicationIcon>Andro.ico</ApplicationIcon>
+    <ApplicationIcon>Properties\Andro.ico</ApplicationIcon>
     <!-- <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion> -->
   </PropertyGroup>
 
@@ -46,13 +46,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Andro.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Andro.Kde\Andro.Kde.csproj" />
     <ProjectReference Include="..\Andro.Adb\Andro.Adb.csproj" />
   </ItemGroup>
@@ -70,7 +63,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Resources.Designer.cs">
+    <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
@@ -78,10 +71,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources.resx">
+    <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Andro.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Text;
+using Andro.Adb.Diagnostics;
 using Andro.Adb.Properties;
-using Andro.Adb.Utilities;
 using JetBrains.Annotations;
 
 // ReSharper disable InconsistentNaming

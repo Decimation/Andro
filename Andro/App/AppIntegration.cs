@@ -1,16 +1,22 @@
 ﻿global using R1 = Andro.Adb.Properties.Resources;
-global using R2 = Andro.Resources;
+global using R2 = Andro.Properties.Resources;
 using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
+using System.Text.Json;
+using Andro.Adb.Android;
 using Andro.Adb.Properties;
+using Andro.Comm;
 using Microsoft.Win32;
 using Novus.OS;
+using Novus.Win32;
+using Novus.Win32.Structures.User32;
 
 #pragma warning disable CA1416
 namespace Andro.App;
 
 public static class AppIntegration
 {
+
 	static AppIntegration() { }
 
 	/*
@@ -44,10 +50,10 @@ public static class AppIntegration
 			RegistryKey mainCmd  = null;
 			RegistryKey first    = null;
 			RegistryKey firstCmd = null;
-			RegistryKey snd    = null;
-			RegistryKey sndCmd = null;
+			RegistryKey snd      = null;
+			RegistryKey sndCmd   = null;
 
-			string      fullPath = ExeLocation;
+			string fullPath = ExeLocation;
 
 			//Computer\HKEY_CURRENT_USER\SOFTWARE\Classes\*\shell\atop
 
@@ -72,10 +78,10 @@ public static class AppIntegration
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
 
 				first = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First);
-				first?.SetValue(null, "sdcard/");
+				first?.SetValue(null, AdbDevice.SDCARD);
 
 				firstCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First_Cmd);
-				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" sdcard/");
+				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" {AdbDevice.SDCARD}");
 
 				snd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Snd);
 				snd?.SetValue(null, "Clipboard");
@@ -131,13 +137,16 @@ public static class AppIntegration
 				// setup shortcut information
 				// link.SetDescription("My Description");
 				link.SetPath(ExeLocation);
-				link.SetArguments(R2.Arg_PushAll);
-				
+				link.SetArguments(AndroPipeData.SendToDataSerialized);
+				link.SetShowCmd((int) ShowCommands.SW_HIDE);
+
 				// save it
 				var file = (IPersistFile) link;
+
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 				file.Save(sendToFile, false);
 				return true;
+
 			case false:
 				var pp = sendToFile;
 				File.Delete(pp);
@@ -147,4 +156,5 @@ public static class AppIntegration
 
 		return null;
 	}
+
 }

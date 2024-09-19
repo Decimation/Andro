@@ -1,5 +1,6 @@
 global using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using System.Diagnostics;
+using Andro.Adb;
 using Andro.Adb.Android;
 using NUnit.Framework;
 

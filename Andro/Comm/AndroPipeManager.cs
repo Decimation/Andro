@@ -1,31 +1,28 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Novus.Utilities;
 
-namespace Andro;
+namespace Andro.Comm;
 
-internal static class AndroPipe
+internal static class AndroPipeManager
 {
 
-	public static int Inter = 0;
+	internal static int Inter = 0;
 
 	/*
 	 * TODO: maybe channels or concurrentqueue
 	 */
 	internal static ConcurrentBag<string> PipeBag = new();
 
-	private const int SW_HIDE = 0;
 
-	/// <summary>
-	/// This identifier must be unique for each application.
-	/// </summary>
-	public const string SingleGuid = "{910e8c27-ab31-4043-9c5d-1382707e6c93}";
+	private const int SW_HIDE = 0;
 
 	public const string IPC_PIPE_NAME = "SIPC";
 
@@ -33,7 +30,7 @@ internal static class AndroPipe
 
 	public static Thread PipeThread { get; private set; }
 
-	public delegate void PipeMessageCallback(string s);
+	public delegate void PipeMessageCallback(AndroPipeData s);
 
 	public static event PipeMessageCallback OnPipeMessage;
 
@@ -54,12 +51,18 @@ internal static class AndroPipe
 	{
 		while (true) {
 			PipeServer.WaitForConnection();
-			var sr = new StreamReader(PipeServer);
 
-			while (!sr.EndOfStream) {
-				var v = sr.ReadLine();
-				OnPipeMessage?.Invoke(v);
+			// var sr = new StreamReader(PipeServer);
+
+			if (PipeServer.CanRead) {
+				var data = JsonSerializer.Deserialize<AndroPipeData>(PipeServer, JsonSerializerOptions.Default);
+				OnPipeMessage?.Invoke(data);
 			}
+
+			/*while (!sr.EndOfStream) {
+				// var line = sr.ReadLine();
+				OnPipeMessage?.Invoke(line);
+			}*/
 
 			// OnPipeMessage?.Invoke(null);
 
@@ -67,24 +70,23 @@ internal static class AndroPipe
 		}
 	}
 
-	public static void SendMessage(string[] msg)
+	public static void SendMessage(AndroPipeData data)
 	{
-
 		using (var pipe = new NamedPipeClientStream(".", IPC_PIPE_NAME, PipeDirection.Out))
 			using (var stream = new StreamWriter(pipe)) {
 				pipe.Connect();
 
-				foreach (var s in msg) {
+				/*foreach (var s in msg) {
 					stream.WriteLine(s);
 				}
 
 				stream.Write(MSG_DELIM);
 				stream.Write(ProcessHelper.GetParent().Id);
 				stream.Write(MSG_DELIM);
-				stream.WriteLine();
+				stream.WriteLine();*/
+				var dataSerialized = JsonSerializer.Serialize(data, JsonSerializerOptions.Default);
+				stream.Write(dataSerialized);
 			}
 	}
-
-	public const char MSG_DELIM = '\0';
 
 }
