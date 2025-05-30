@@ -118,19 +118,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Arg_Clipboard" xml:space="preserve">
-    <value>-c</value>
+    <value>clipboard</value>
   </data>
-  <data name="Arg_CtxMenu" xml:space="preserve">
-    <value>-ctx-menu</value>
+  <data name="Arg_Integration" xml:space="preserve">
+    <value>integration</value>
   </data>
   <data name="Arg_Push" xml:space="preserve">
-    <value>-p</value>
+    <value>push</value>
   </data>
   <data name="Arg_PushAll" xml:space="preserve">
-    <value>-pa</value>
-  </data>
-  <data name="Arg_SendTo" xml:space="preserve">
-    <value>-send-to</value>
+    <value>push-all</value>
   </data>
   <data name="Reg_Shell" xml:space="preserve">
     <value>SOFTWARE\Classes\*\shell\Andro</value>

@@ -2,7 +2,7 @@
 
 namespace Andro.Adb.Android;
 
-public class AdbFilterInputStream : FilterInputStream
+/*public class AdbFilterInputStream : FilterInputStream
 {
 	//todo
 
@@ -53,4 +53,4 @@ public class AdbFilterInputStream : FilterInputStream
 
 		return n;
 	}
-}
+}*/

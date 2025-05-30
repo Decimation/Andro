@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Andro.Comm;
 
-internal static class AndroPipeManager
+public static class AndroPipeManager
 {
 
 	internal static int Inter = 0;

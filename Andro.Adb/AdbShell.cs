@@ -19,13 +19,13 @@ namespace Andro.Adb;
 public static class AdbShell
 {
 
-	public static readonly Command Cmd_adb = Cli.Wrap(R.Adb);
+	public static readonly Command CommandBase = Cli.Wrap(R.Adb);
 
 	public static Command BuildPush(string src, string dest, PipeTarget stdOut, PipeTarget stdErr)
 	{
 		// var sb = new StringBuilder();
 
-		var r = Cmd_adb.WithArguments($"push \"{src}\" \"{dest}\"")
+		var r = CommandBase.WithArguments($"push \"{src}\" \"{dest}\"")
 			.WithStandardOutputPipe(stdOut)
 			.WithStandardErrorPipe(stdErr);
 

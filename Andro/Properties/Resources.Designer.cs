@@ -61,7 +61,7 @@ namespace Andro.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to -c.
+        ///   Looks up a localized string similar to clipboard.
         /// </summary>
         internal static string Arg_Clipboard {
             get {
@@ -70,16 +70,16 @@ namespace Andro.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to -ctx-menu.
+        ///   Looks up a localized string similar to integration.
         /// </summary>
-        internal static string Arg_CtxMenu {
+        internal static string Arg_Integration {
             get {
-                return ResourceManager.GetString("Arg_CtxMenu", resourceCulture);
+                return ResourceManager.GetString("Arg_Integration", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to -p.
+        ///   Looks up a localized string similar to push.
         /// </summary>
         internal static string Arg_Push {
             get {
@@ -88,20 +88,11 @@ namespace Andro.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to -pa.
+        ///   Looks up a localized string similar to push-all.
         /// </summary>
         internal static string Arg_PushAll {
             get {
                 return ResourceManager.GetString("Arg_PushAll", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to -send-to.
-        /// </summary>
-        internal static string Arg_SendTo {
-            get {
-                return ResourceManager.GetString("Arg_SendTo", resourceCulture);
             }
         }
         

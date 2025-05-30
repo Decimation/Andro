@@ -22,6 +22,8 @@ using CliWrap;
 using Novus.Win32;
 using Andro.Kde;
 using Andro.Comm;
+using Spectre.Console.Cli;
+using Andro.Commands;
 
 
 // ReSharper disable AssignNullToNotNullAttribute
@@ -92,7 +94,7 @@ public static class Program
 
 		AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
 		{
-			AnsiConsole.WriteLine($"{sender} {args.ExceptionObject}");
+			AnsiConsole.WriteException(args.ExceptionObject as Exception, ExceptionFormats.Default);
 		};
 	}
 
@@ -121,6 +123,17 @@ public static class Program
 			*/
 
 		Console.Title = R1.Name;
+
+		var cmdApp = new CommandApp();
+
+		cmdApp.Configure(cfg =>
+		{
+			cfg.AddCommand<IntegrationCommand>(R2.Arg_Integration);
+			cfg.AddCommand<ClipboardCommand>(R2.Arg_Clipboard);
+			cfg.AddCommand<PushCommand>(R2.Arg_Push);
+			cfg.AddCommand<PushAllCommand>(R2.Arg_PushAll);
+
+		});
 
 		var b = _mutex.WaitOne(TimeSpan.Zero, true);
 
@@ -151,163 +164,9 @@ public static class Program
 
 		return 0;
 	}
+	
 
-
-	internal static async Task ParseArgsAsync(string[] args)
-	{
-		var e = args.GetEnumerator();
-
-		while (e.MoveNext()) {
-			var current = (string) e.Current;
-
-			if (current == R2.Arg_CtxMenu) {
-				var res = AppIntegration.HandleContextMenu(!AppIntegration.IsContextMenuAdded);
-				var sty = AppInterface.GetStyleForNullable(res);
-				AnsiConsole.Write(new Text($"Context menu integration: {res}", sty));
-
-				continue;
-			}
-
-
-			if (current == R2.Arg_SendTo) {
-				var res = AppIntegration.HandleSendToMenu();
-				var sty = AppInterface.GetStyleForNullable(res);
-				AnsiConsole.Write(new Text($"Send-to integration: {res}", sty));
-
-				continue;
-			}
-
-			if (current == R2.Arg_Push) {
-				var f = (string) e.MoveAndGet();
-				var d = (string) e.MoveAndGet();
-				await HandlePushAsync(d, f);
-
-				continue;
-			}
-
-			if (current == R2.Arg_Clipboard) {
-				var d = (string) e.MoveAndGet();
-				await HandleClipboardAsync(d);
-
-				continue;
-			}
-
-			if (current == R2.Arg_PushAll) {
-
-				var filesIdx = Array.IndexOf(args, R2.Arg_PushAll, 0) + 1;
-				var files    = args[filesIdx..];
-				await PushAllAsync(files);
-
-				continue;
-			}
-		}
-	}
-
-	private static async Task HandlePushAsync(string d, string f)
-	{
-		d ??= AdbDevice.SDCARD;
-		f =   f.CleanString();
-		d =   d.CleanString();
-
-		var sb  = new StringBuilder();
-		var sb2 = new StringBuilder();
-
-		var cmd = AdbShell.BuildPush(f, d,
-		                             PipeTarget.ToStringBuilder(sb),
-		                             PipeTarget.ToStringBuilder(sb2));
-
-		var x = await cmd.ExecuteAsync();
-
-		if (x.IsSuccess) {
-			AnsiConsole.WriteLine($"{x} : {sb}");
-		}
-	}
-
-	private static async Task HandleClipboardAsync(string d)
-	{
-		Debug.WriteLine($"clipboard arg mag : {d}");
-		Clipboard.Open();
-		var cbDragQuery = Clipboard.GetDragQueryList();
-
-		await Parallel.ForEachAsync(cbDragQuery, async (s, token) =>
-		{
-			var sb  = new StringBuilder();
-			var sb2 = new StringBuilder();
-
-			var cmd = AdbShell.BuildPush(s, AdbDevice.SDCARD,
-			                             PipeTarget.ToStringBuilder(sb),
-			                             PipeTarget.ToStringBuilder(sb2));
-
-			var x = await cmd.ExecuteAsync(token);
-
-			if (x.IsSuccess) {
-				// ...
-			}
-		});
-
-		Clipboard.Close();
-	}
-
-	public static async Task PushAllAsync(string[] files)
-	{
-		var progress = AnsiConsole.Progress().Columns([
-			new TaskDescriptionColumn(), // Task description
-			new ProgressBarColumn(),     // Progress bar
-			new PercentageColumn(),      // Percentage
-			new SpinnerColumn()          // Spinner
-		]).AutoRefresh(true);
-
-		var progTask = progress.StartAsync(async (context) =>
-		{
-			var sendTask = context.AddTask("Send", false, files.Length);
-
-			int n = 0;
-
-			/*
-			var prg = new Progress<string>(handler)
-				{ };
-			*/
-			sendTask.StartTask();
-
-			await Parallel.ForEachAsync(files, async (s, token) =>
-			{
-				var sb  = new StringBuilder();
-				var sb2 = new StringBuilder();
-
-				var dest = AdbDevice.SDCARD;
-
-				var cmd = AdbShell.BuildPush(s, dest,
-				                             PipeTarget.ToStringBuilder(sb),
-				                             PipeTarget.ToStringBuilder(sb2));
-
-				var desc     = $"{s} {Strings.Constants.ARROW_RIGHT} {dest}";
-				var fileTask = context.AddTask(desc, false);
-				fileTask.IsIndeterminate = true;
-				fileTask.StartTask();
-
-				// fileTask.Increment(50D);
-				var result = await cmd.ExecuteAsync(token);
-
-
-				if (result.IsSuccess) {
-					n++;
-					sendTask.Increment(n);
-					fileTask.Description = $"{desc} {Strings.Constants.HEAVY_CHECK_MARK}";
-				}
-
-				fileTask.IsIndeterminate = false;
-				fileTask.Increment(100D);
-
-				// fileTask.Increment(50D);
-				fileTask.StopTask();
-
-			});
-			sendTask.StopTask();
-
-			return;
-		});
-		await progTask;
-	}
+	
 
 	// public static AdbShell Device { get; } = new AdbShell();
 

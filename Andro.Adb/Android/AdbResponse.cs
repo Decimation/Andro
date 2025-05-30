@@ -3,8 +3,13 @@ using Andro;
 
 namespace Andro.Adb.Android;
 
-public record AdbResponse
+public readonly record struct AdbResponse
 {
-	public string Message { get; internal init; }
-	public bool? Ok { get; internal init; }
+
+	[CBN]
+	public string Message { get; }
+
+	public bool? Ok { get; }
+
+	public AdbResponse() { }
 }
