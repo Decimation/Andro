@@ -1,7 +1,5 @@
 ﻿
 // ReSharper disable UnusedMember.Global
-#nullable enable
-using System;
 
 namespace Andro.Adb.Diagnostics;
 

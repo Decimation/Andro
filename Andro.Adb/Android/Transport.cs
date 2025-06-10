@@ -3,10 +3,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
-using System.Text;
 using Andro.Adb.Diagnostics;
-using Andro.Adb.Properties;
-using JetBrains.Annotations;
 
 // ReSharper disable InconsistentNaming
 
@@ -84,8 +81,7 @@ public class Transport : IDisposable
 		// await NetworkStream.FlushAsync(t.Value);
 
 		await Tcp.Client.SendAsync(rg2, t);
-		
-		return;
+
 	}
 
 	/*public async Task<SyncTransport> StartSyncAsync()
@@ -168,26 +164,14 @@ public class Transport : IDisposable
 
 				b = false;
 				break;
-			default:
-				/*msg = await ReadStringAsync();
-
-				if (throws) {
-					throw new AdbException(msg);
-				}*/
-				// b = f?.Invoke(res);
-				break;
 		}
 
-		return new AdbResponse()
-		{
-			Message = msg,
-			Ok      = b
-		};
+		return new AdbResponse(b, msg);
 	}
 
 	public void Dispose()
 	{
-		Trace.WriteLine($"Disposing");
+		Trace.WriteLine("Disposing");
 		Tcp.Dispose();
 		Reader.Dispose();
 		Writer.Dispose();

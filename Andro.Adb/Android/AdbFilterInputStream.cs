@@ -1,6 +1,4 @@
-﻿using Novus.Streams;
-
-namespace Andro.Adb.Android;
+﻿namespace Andro.Adb.Android;
 
 /*public class AdbFilterInputStream : FilterInputStream
 {

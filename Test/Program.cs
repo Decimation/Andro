@@ -1,5 +1,4 @@
 ﻿using Andro.Kde;
-using Andro.Adb.Android;
 using Novus.Win32;
 
 namespace Test;
@@ -37,7 +36,7 @@ public static class Program
 
 		var f= Clipboard.GetDragQueryList();
 
-		var strings = new List<string>()
+		var strings = new List<string>
 		{
 			@"C:\Users\Deci\Pictures\Epic anime\3e91c02d7dba20f9aeda7b4c7823b632.png"
 		};

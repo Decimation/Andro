@@ -1,29 +1,12 @@
-﻿using System.ServiceModel;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using Andro.Adb.Android;
-using Andro.App;
+﻿using Andro.App;
+using Andro.Commands;
+using Andro.IPC;
+using Microsoft.Extensions.Logging;
+using Spectre.Console;
+using Spectre.Console.Cli;
+using Spectre.Console.Cli.Help;
 
 // using Andro.Kde;
-using Andro.Adb.Properties;
-using Kantan.Collections;
-using Kantan.Text;
-using Microsoft.Extensions.Hosting;
-using Novus.Streams;
-using Spectre.Console;
-using System.IO.Pipes;
-using System.Text;
-using Andro.Adb;
-using Novus.Utilities;
-using System.Threading;
-using CliWrap;
-using Novus.Win32;
-using Andro.Kde;
-using Andro.Comm;
-using Spectre.Console.Cli;
-using Andro.Commands;
 
 
 // ReSharper disable AssignNullToNotNullAttribute
@@ -54,55 +37,16 @@ public static class Program
 	{
 		// RuntimeHelpers.RunClassConstructor(typeof(AppIntegration).TypeHandle);
 
-		AndroPipeManager.OnPipeMessage += async s =>
-		{
-			// TODO: WTF JUST SERIALIZE THE DATA IN A STRUCTURED WAY !!!!!!!!!!!!!!!!
-
-			// TODO: Coming back to this project after 1 year of inactivity, and my lack of (self) documentation
-			//		 has come back to bite me
-
-			Debug.WriteLine($"{nameof(AndroPipeManager.OnPipeMessage)} :: {s}");
-			
-			await ParseArgsAsync(s.Data);
-
-			/*if (s[0] == AndroPipeManager.MSG_DELIM) {
-				int pid = int.Parse(s[1..^1]);
-				Debug.WriteLine("full msg");
-				AndroPipeManager.Inter++;
-
-				var args = AndroPipeManager.PipeBag.ToArray();
-				Array.Reverse(args);
-				await ParseArgsAsync(args);
-				AndroPipeManager.PipeBag.Clear();
-			}
-			else {
-				AndroPipeManager.PipeBag.Add(s);
-
-			}*/
-
-			/*AnsiConsole.Clear();
-			AnsiConsole.Write(new FigletText("Andro"));
-			AnsiConsole.WriteLine($"{AndroPipeManager.PipeBag.Count} msg | {AndroPipeManager.Inter}");*/
-		};
-
-		Console.CancelKeyPress += (sender, args) =>
-		{
-			Debug.WriteLine($"{sender} {args} ctrl-c");
-
-			Cts.Cancel();
-		};
-
-		AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
-		{
-			AnsiConsole.WriteException(args.ExceptionObject as Exception, ExceptionFormats.Default);
-		};
+		s_logger = AppIntegration.LoggerFactoryInt.CreateLogger(nameof(Program));
 	}
 
-	public static readonly CancellationTokenSource Cts = new();
+	private static readonly CancellationTokenSource _cts = new();
 
 	private const char CTRL_Z = '\x1A';
 
 	private static readonly Mutex _mutex = new(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
+
+	private static readonly ILogger s_logger;
 
 	public static async Task<int> Main(string[] args)
 	{
@@ -122,12 +66,37 @@ public static class Program
 			.Build();
 			*/
 
+
+		AndroPipeManager.OnPipeMessage += async s =>
+		{
+			//
+			s_logger.LogDebug("{Message}", s);
+		};
+
+		Console.CancelKeyPress += (sender, args) =>
+		{
+			//
+			s_logger.LogDebug("{Sender} {Args}", sender, args);
+			_cts.Cancel();
+		};
+
+		AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+		{
+			var exception = args.ExceptionObject as Exception;
+			AnsiConsole.WriteException(exception);
+			s_logger.LogError(exception, "Error");
+		};
+
 		Console.Title = R1.Name;
 
 		var cmdApp = new CommandApp();
+		// cmdApp.SetDefaultCommand<>()
 
 		cmdApp.Configure(cfg =>
 		{
+			cfg.PropagateExceptions();
+			cfg.SetHelpProvider(new CustomHelpProvider(cfg.Settings));
+			
 			cfg.AddCommand<IntegrationCommand>(R2.Arg_Integration);
 			cfg.AddCommand<ClipboardCommand>(R2.Arg_Clipboard);
 			cfg.AddCommand<PushCommand>(R2.Arg_Push);
@@ -137,19 +106,21 @@ public static class Program
 
 		var b = _mutex.WaitOne(TimeSpan.Zero, true);
 
+		int res = 0;
+
 		if (b) {
 
 
 			try {
 
-				await ParseArgsAsync(args);
+				res = await cmdApp.RunAsync(args);
 
-				AnsiConsole.Clear();
+				/*AnsiConsole.Clear(); //todo
 				AnsiConsole.Write(AppInterface._nameFiglet);
 				AnsiConsole.WriteLine($"{AndroPipeManager.PipeBag.Count} msg");
 				AndroPipeManager.StartServer();
 
-				await Task.Delay(-1, Cts.Token);
+				await Task.Delay(Timeout.Infinite, _cts.Token);*/
 
 			}
 			finally {
@@ -162,12 +133,7 @@ public static class Program
 			AndroPipeManager.SendMessage(data);
 		}
 
-		return 0;
+		return res;
 	}
-	
-
-	
-
-	// public static AdbShell Device { get; } = new AdbShell();
 
 }

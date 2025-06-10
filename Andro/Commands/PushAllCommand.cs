@@ -14,19 +14,18 @@ namespace Andro.Commands;
 public class PushAllCommand : AsyncCommand
 {
 
-
 	public override async Task<int> ExecuteAsync(CommandContext context)
 	{
 		var files = context.Arguments;
 
-		var progress = AnsiConsole.Progress().Columns([
-			new TaskDescriptionColumn(), // Task description
-			new ProgressBarColumn(),     // Progress bar
-			new PercentageColumn(),      // Percentage
-			new SpinnerColumn()          // Spinner
-		]).AutoRefresh(true);
+		var progress = AnsiConsole.Progress()
+			.Columns(new TaskDescriptionColumn(),
+			         new ProgressBarColumn(),
+			         new PercentageColumn(),
+			         new SpinnerColumn())
+			.AutoRefresh(true);
 
-		var progTask = progress.StartAsync(async (ctx) =>
+		var progTask = progress.StartAsync(async ctx =>
 		{
 			var sendTask = ctx.AddTask("Send", false, files.Count);
 
@@ -45,9 +44,9 @@ public class PushAllCommand : AsyncCommand
 
 				var dest = AdbDevice.SDCARD;
 
-				var cmd = AdbShell.BuildPush(s, dest,
-				                             PipeTarget.ToStringBuilder(sb),
-				                             PipeTarget.ToStringBuilder(sb2));
+				var cmd = AdbCommand.BuildPush(s, dest,
+				                               PipeTarget.ToStringBuilder(sb),
+				                               PipeTarget.ToStringBuilder(sb2));
 
 				var desc     = $"{s} {Strings.Constants.ARROW_RIGHT} {dest}";
 				var fileTask = ctx.AddTask(desc, false);
@@ -58,8 +57,7 @@ public class PushAllCommand : AsyncCommand
 				var result = await cmd.ExecuteAsync(token);
 
 
-				if (result.IsSuccess)
-				{
+				if (result.IsSuccess) {
 					n++;
 					sendTask.Increment(n);
 					fileTask.Description = $"{desc} {Strings.Constants.HEAVY_CHECK_MARK}";
@@ -74,9 +72,10 @@ public class PushAllCommand : AsyncCommand
 			});
 			sendTask.StopTask();
 
-			return;
 		});
 		await progTask;
+
+		return 0;
 	}
 
 }

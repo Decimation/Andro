@@ -8,15 +8,13 @@ global using R = Andro.Adb.Properties.Resources;
 global using SFM = JetBrains.Annotations.StringFormatMethodAttribute;
 global using MURV = JetBrains.Annotations.MustUseReturnValueAttribute;
 global using CBN = JetBrains.Annotations.CanBeNullAttribute;
-using System.Runtime.CompilerServices;
-
-using System.Text;
 using CliWrap;
+
 // ReSharper disable InconsistentNaming
 
 namespace Andro.Adb;
 
-public static class AdbShell
+public static class AdbCommand
 {
 
 	public static readonly Command CommandBase = Cli.Wrap(R.Adb);

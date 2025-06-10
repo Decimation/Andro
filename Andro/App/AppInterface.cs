@@ -7,11 +7,11 @@ using Spectre.Console;
 
 namespace Andro.App;
 
-public static class AppInterface
+internal static class AppInterface
 {
 
 	internal static Style GetStyleForNullable(bool? res)
-		=> GetStyleForNullable(res, b => b);
+		=> GetStyleForNullable(res, static b => b);
 
 	internal static Style GetStyleForNullable<T>(T? res, Predicate<T> pred) where T : struct
 	{
@@ -25,6 +25,6 @@ public static class AppInterface
 
 	internal static readonly Style Clr_Error = new(Color.Red, decoration: Decoration.None);
 
-	internal static FigletText _nameFiglet = new(R1.Name);
+	internal static readonly FigletText _nameFiglet = new(R1.Name);
 
 }

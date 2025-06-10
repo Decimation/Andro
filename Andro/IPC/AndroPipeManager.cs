@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Concurrent;
 using System.IO.Pipes;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+using Andro.App;
+using Microsoft.Extensions.Logging;
 
-namespace Andro.Comm;
+namespace Andro.IPC;
 
 public static class AndroPipeManager
 {
@@ -19,6 +14,7 @@ public static class AndroPipeManager
 	/*
 	 * TODO: maybe channels or concurrentqueue
 	 */
+	
 	internal static ConcurrentBag<string> PipeBag = new();
 
 
@@ -34,6 +30,12 @@ public static class AndroPipeManager
 
 	public static event PipeMessageCallback OnPipeMessage;
 
+	private static readonly ILogger s_logger;
+
+	static AndroPipeManager()
+	{
+		s_logger = AppIntegration.LoggerFactoryInt.CreateLogger(nameof(AndroPipeManager));
+	}
 
 	internal static void StartServer()
 	{
@@ -72,11 +74,13 @@ public static class AndroPipeManager
 
 	public static void SendMessage(AndroPipeData data)
 	{
-		using (var pipe = new NamedPipeClientStream(".", IPC_PIPE_NAME, PipeDirection.Out))
-			using (var stream = new StreamWriter(pipe)) {
-				pipe.Connect();
+		using var pipe = new NamedPipeClientStream(".", IPC_PIPE_NAME, PipeDirection.Out);
 
-				/*foreach (var s in msg) {
+		using var stream = new StreamWriter(pipe);
+
+		pipe.Connect();
+
+		/*foreach (var s in msg) {
 					stream.WriteLine(s);
 				}
 
@@ -84,9 +88,10 @@ public static class AndroPipeManager
 				stream.Write(ProcessHelper.GetParent().Id);
 				stream.Write(MSG_DELIM);
 				stream.WriteLine();*/
-				var dataSerialized = JsonSerializer.Serialize(data, JsonSerializerOptions.Default);
-				stream.Write(dataSerialized);
-			}
+
+		var dataSerialized = JsonSerializer.Serialize(data, JsonSerializerOptions.Default);
+		stream.Write(dataSerialized);
+
 	}
 
 }

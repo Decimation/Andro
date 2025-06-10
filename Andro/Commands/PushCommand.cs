@@ -6,7 +6,6 @@ using System.Text;
 using Andro.Adb;
 using Andro.Adb.Android;
 using CliWrap;
-using Kantan.Text;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -20,9 +19,9 @@ public class PushCommand : AsyncCommand<PushCommandOptions>
 		var sb  = new StringBuilder();
 		var sb2 = new StringBuilder();
 
-		var cmd = AdbShell.BuildPush(settings.Source, settings.Destination,
-		                             PipeTarget.ToStringBuilder(sb),
-		                             PipeTarget.ToStringBuilder(sb2));
+		var cmd = AdbCommand.BuildPush(settings.Source, settings.Destination,
+		                            PipeTarget.ToStringBuilder(sb),
+		                            PipeTarget.ToStringBuilder(sb2));
 
 		var x = await cmd.ExecuteAsync();
 

@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 using Novus.Utilities;
 using Novus.Win32;
 
-namespace Andro.Comm;
+namespace Andro.IPC;
 
 public class AndroPipeData
 {

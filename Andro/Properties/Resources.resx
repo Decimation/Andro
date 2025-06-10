@@ -150,4 +150,10 @@
   <data name="Reg_Shell_Snd_Cmd" xml:space="preserve">
     <value>SOFTWARE\Classes\*\shell\Andro\shell\Second\command</value>
   </data>
+  <data name="Url_Repo" xml:space="preserve">
+    <value>https://github.com/Decimation/Andro</value>
+  </data>
+  <data name="Url_Wiki" xml:space="preserve">
+    <value>https://github.com/Decimation/Andro/wiki</value>
+  </data>
 </root>

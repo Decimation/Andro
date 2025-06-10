@@ -1,10 +1,5 @@
-﻿using System.Buffers.Binary;
-using JetBrains.Annotations;
-using System.Diagnostics;
-using System.Net.Sockets;
-using System.Reflection.PortableExecutable;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using Andro.Adb.Diagnostics;
 
 [assembly: InternalsVisibleTo("Andro")]

@@ -1,15 +1,7 @@
 ﻿global using R1 = Andro.Adb.Properties.Resources;
 global using R2 = Andro.Properties.Resources;
-using System.Diagnostics;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text.Json;
-using Andro.Adb.Android;
-using Andro.Adb.Properties;
-using Andro.Comm;
-using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
 using Novus.OS;
-using Novus.Win32;
-using Novus.Win32.Structures.User32;
 
 #pragma warning disable CA1416
 namespace Andro.App;
@@ -17,7 +9,18 @@ namespace Andro.App;
 public static class AppIntegration
 {
 
-	static AppIntegration() { }
+	internal static readonly ILoggerFactory LoggerFactoryInt;
+
+	static AppIntegration()
+	{
+		LoggerFactoryInt = LoggerFactory.Create(builder =>
+		{
+			builder.AddDebug();
+			builder.AddTraceSource(TRACE_COND);
+			builder.AddConsole();
+			builder.SetMinimumLevel(LogLevel.Trace);
+		});
+	}
 
 	/*
 	 * HKEY_CLASSES_ROOT is an alias, a merging, of two other locations:
@@ -30,5 +33,9 @@ public static class AppIntegration
 	internal const string STRING_FORMAT_ARG = "str";
 
 	internal const string DEBUG_COND = "DEBUG";
+
+	internal const  string TRACE_COND = "TRACE";
+
+	internal const string OS_WIN = "windows";
 
 }

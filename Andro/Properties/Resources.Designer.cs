@@ -158,5 +158,23 @@ namespace Andro.Properties {
                 return ResourceManager.GetString("Reg_Shell_Snd_Cmd", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to https://github.com/Decimation/Andro.
+        /// </summary>
+        internal static string Url_Repo {
+            get {
+                return ResourceManager.GetString("Url_Repo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to https://github.com/Decimation/Andro/wiki.
+        /// </summary>
+        internal static string Url_Wiki {
+            get {
+                return ResourceManager.GetString("Url_Wiki", resourceCulture);
+            }
+        }
     }
 }

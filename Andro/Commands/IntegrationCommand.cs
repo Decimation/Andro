@@ -3,10 +3,12 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using Andro.Adb.Android;
 using Andro.App;
-using Andro.Comm;
+using Andro.IPC;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Novus.Win32.Structures.User32;
 using Spectre.Console;
@@ -17,11 +19,40 @@ namespace Andro.Commands;
 public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 {
 
-	public static bool? HandleContextMenu(bool? b = null)
-	{
-		b ??= TryGetContextMenuSubKey() == null;
+	private static readonly ILogger s_logger = AppIntegration.LoggerFactoryInt.CreateLogger(nameof(IntegrationCommand));
 
-		if (b.Value) {
+	[SupportedOSPlatform(AppIntegration.OS_WIN)]
+	public override async Task<int> ExecuteAsync(CommandContext context, IntegrationCommandSettings settings)
+	{
+		bool? ok = null;
+
+		var contextMenu = settings.ContextMenu;
+
+		ok = HandleContextMenu(contextMenu);
+		s_logger.LogDebug("Context menu: {CtxMenu} -> {CtxMenu2}", contextMenu, ok);
+
+		if (contextMenu) { }
+
+		var sendTo = settings.SendTo;
+
+		ok = HandleSendToMenu(sendTo);
+		s_logger.LogDebug("Send to: {SendTo} -> {SendTo2}", sendTo,ok);
+
+		if (sendTo) { }
+
+		// int res = ok.HasValue ? ok.Value ? 0 : -1 : -1;
+
+		return 0;
+
+	}
+
+	[SupportedOSPlatform(AppIntegration.OS_WIN)]
+	public static bool? HandleContextMenu(bool b)
+	{
+		// b ??= TryGetContextMenuSubKey(out RegistryKey reg) == null;
+		bool? res = null;
+
+		if (b) {
 			RegistryKey shell    = null;
 			RegistryKey main     = null;
 			RegistryKey mainCmd  = null;
@@ -65,12 +96,12 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 				sndCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Snd_Cmd);
 				sndCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Clipboard} \"%1\"");
 
-				return true;
+				res = true;
 
 			}
 			catch (Exception ex) {
 				Debug.WriteLine($"{ex.Message}");
-				return false;
+				res = null;
 			}
 			finally {
 				shell?.Close();
@@ -79,32 +110,32 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 				first?.Close();
 				firstCmd?.Close();
 			}
-
 		}
 		else {
-			var shell = TryGetContextMenuSubKey();
+			var ok = TryGetContextMenuSubKey(out RegistryKey shell);
 
-			if (shell != null) {
+			if (ok) {
 				shell.Close();
 				Registry.CurrentUser.DeleteSubKeyTree(R2.Reg_Shell);
-				return false;
+				res = false;
 			}
-
 		}
 
-		return null;
+		return res;
 	}
 
-	public static bool? HandleSendToMenu(bool? b = null)
+	[SupportedOSPlatform(AppIntegration.OS_WIN)]
+	public static bool? HandleSendToMenu(bool b)
 	{
+		bool? res = null;
 
 		var sendTo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
 		                          @"AppData\Roaming\Microsoft\Windows\SendTo");
 
-		Debug.WriteLine($"{AppIntegration.ExeLocation}");
-
+		s_logger.LogDebug("{ExeLoc}", AppIntegration.ExeLocation);
 		var sendToFile = Path.Combine(sendTo, R1.NameShortcut);
-		b ??= !File.Exists(sendToFile);
+
+		// b ??= !File.Exists(sendToFile);
 
 		switch (b) {
 			case true:
@@ -115,7 +146,8 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 				// setup shortcut information
 				// link.SetDescription("My Description");
 				link.SetPath(AppIntegration.ExeLocation);
-				link.SetArguments(AndroPipeData.SendToDataSerialized);
+				// link.SetArguments(AndroPipeData.SendToDataSerialized);
+				link.SetArguments(R2.Arg_PushAll);
 				link.SetShowCmd((int) ShowCommands.SW_HIDE);
 
 				// save it
@@ -123,29 +155,23 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 
 				// string       desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 				file.Save(sendToFile, false);
-				return true;
+				res = true;
+				break;
 
 			case false:
 				var pp = sendToFile;
 				File.Delete(pp);
-				return false;
+				res = false;
+				break;
 
 		}
 
-		return null;
+		return res;
 	}
-
-#region Overrides of AsyncCommand<IntegrationCommandSettings>
-
-	public override async Task<int> ExecuteAsync(CommandContext context, IntegrationCommandSettings settings)
-	{
-		if (settings.ContextMenu.HasValue) { }
-	}
-
-#endregion
 
 	// public static bool IsContextMenuAdded => Registry.CurrentUser.GetSubKeyNames().Any(k => k == R2.Reg_Shell);
 
+	[SupportedOSPlatform(AppIntegration.OS_WIN)]
 	public static bool TryGetContextMenuSubKey(out RegistryKey reg)
 	{
 		reg = Registry.CurrentUser.OpenSubKey(R2.Reg_Shell, RegistryRights.ReadKey);
@@ -159,17 +185,21 @@ public class IntegrationCommandSettings : CommandSettings
 {
 
 	[CommandOption("--send-to")]
-	public bool? SendTo { get; set; }
+	public bool SendTo { get; set; }
 
 	[CommandOption("--ctx-menu")]
-	public bool? ContextMenu { get; set; }
+	public bool ContextMenu { get; set; }
 
 	public override ValidationResult Validate()
 	{
 		//todo
 
 		// return (SendTo ^ ContextMenu);
-		return ValidationResult.Success();
+
+		var vr = ValidationResult.Success();
+
+
+		return vr;
 	}
 
 }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Andro.Adb.Android;
+﻿namespace Andro.Adb.Android;
 
 public class SyncTransport : IDisposable
 {
