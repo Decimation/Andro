@@ -40,7 +40,7 @@ public static class Program
 		s_logger = AppIntegration.LoggerFactoryInt.CreateLogger(nameof(Program));
 	}
 
-	private static readonly CancellationTokenSource _cts = new();
+	internal static readonly CancellationTokenSource _cts = new();
 
 	private const char CTRL_Z = '\x1A';
 
@@ -90,7 +90,8 @@ public static class Program
 		Console.Title = R1.Name;
 
 		var cmdApp = new CommandApp();
-		// cmdApp.SetDefaultCommand<>()
+		
+		// cmdApp.SetDefaultCommand<MutexCommand>();
 
 		cmdApp.Configure(cfg =>
 		{
@@ -101,6 +102,7 @@ public static class Program
 			cfg.AddCommand<ClipboardCommand>(R2.Arg_Clipboard);
 			cfg.AddCommand<PushCommand>(R2.Arg_Push);
 			cfg.AddCommand<PushAllCommand>(R2.Arg_PushAll);
+			cfg.AddCommand<AutoCommand>(R2.Arg_Auto);
 
 		});
 
@@ -111,26 +113,33 @@ public static class Program
 		if (b) {
 
 
-			try {
+			try  {
 
 				res = await cmdApp.RunAsync(args);
 
 				/*AnsiConsole.Clear(); //todo
 				AnsiConsole.Write(AppInterface._nameFiglet);
 				AnsiConsole.WriteLine($"{AndroPipeManager.PipeBag.Count} msg");
-				AndroPipeManager.StartServer();
+				*/
 
-				await Task.Delay(Timeout.Infinite, _cts.Token);*/
-
+				// AndroPipeManager.StartServer();
+				// await Task.Delay(Timeout.Infinite, Program._cts.Token);
 			}
 			finally {
 				_mutex.ReleaseMutex();
+
 			}
 		}
 		else {
 			var data = AndroPipeData.FromArgs(args);
 			AnsiConsole.WriteLine($">> {data} to process");
 			AndroPipeManager.SendMessage(data);
+		}
+
+	exit:
+		var p = await AnsiConsole.PromptAsync(new ConfirmationPrompt("Exit?"));
+
+		if (p) {
 		}
 
 		return res;

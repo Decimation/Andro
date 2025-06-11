@@ -3,13 +3,13 @@
     "Andro": {
       "commandName": "Project"
     },
-    "Profile 1": {
+    "push": {
       "commandName": "Project",
-      "commandLineArgs": "-ctx-menu"
+      "commandLineArgs": "push \"C:\\Users\\Deci\\Downloads\\Shego_LQ.jpg\""
     },
-    "Profile 2": {
+    "send-to": {
       "commandName": "Project",
-      "commandLineArgs": "-p \"C:\\Users\\Deci\\Downloads\\Shego_LQ.jpg\""
+      "commandLineArgs": "integration --send-to true"
     }
   }
 }

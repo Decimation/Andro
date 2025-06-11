@@ -61,6 +61,15 @@ namespace Andro.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to auto.
+        /// </summary>
+        internal static string Arg_Auto {
+            get {
+                return ResourceManager.GetString("Arg_Auto", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to clipboard.
         /// </summary>
         internal static string Arg_Clipboard {
