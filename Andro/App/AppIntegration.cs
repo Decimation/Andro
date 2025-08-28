@@ -13,6 +13,8 @@ public static class AppIntegration
 
 	static AppIntegration()
 	{
+		ExeLocation = FileSystem.FindLocation(R1.NameExe);
+
 		LoggerFactoryInt = LoggerFactory.Create(builder =>
 		{
 			builder.AddDebug();
@@ -28,13 +30,13 @@ public static class AppIntegration
 	 *		HKEY_LOCAL_MACHINE\Software\Classes
 	 */
 
-	public static string ExeLocation => FileSystem.FindExecutableLocation(R1.NameExe);
+	public static readonly string ExeLocation;
 
 	internal const string STRING_FORMAT_ARG = "str";
 
 	internal const string DEBUG_COND = "DEBUG";
 
-	internal const  string TRACE_COND = "TRACE";
+	internal const string TRACE_COND = "TRACE";
 
 	internal const string OS_WIN = "windows";
 

@@ -21,15 +21,12 @@ public static class AdbCommand
 
 	public static Command BuildPush(string src, string dest, PipeTarget stdOut, PipeTarget stdErr)
 	{
-		// var sb = new StringBuilder();
-
-		var r = CommandBase.WithArguments($"push \"{src}\" \"{dest}\"")
+		var r = CommandBase.WithArguments(["push", src, dest], true)
 			.WithStandardOutputPipe(stdOut)
 			.WithStandardErrorPipe(stdErr);
 
 		return r;
 
 	}
-
 
 }

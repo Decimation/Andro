@@ -7,15 +7,16 @@ using Andro.Adb.Diagnostics;
 
 namespace Andro.Adb.Android;
 
-public class AdbDevice : ITransportFactory
+public class Device : ITransportFactory
 {
+
 	public const string SDCARD = "sdcard/";
 
 	public string? Serial { get; }
 
-	private ITransportFactory m_factory;
+	private readonly ITransportFactory m_factory;
 
-	internal AdbDevice(string? serial, ITransportFactory f)
+	internal Device(string? serial, ITransportFactory f)
 	{
 		Serial    = serial;
 		m_factory = f;
@@ -68,23 +69,15 @@ public class AdbDevice : ITransportFactory
 		return t;
 	}*/
 
-	public async ValueTask<string> ShellAsync(string cmd, IEnumerable<string>? args = null)
+	public async ValueTask<string> ShellAsync(string cmd, IEnumerable<string> args = null, CancellationToken ct = default)
 	{
-		args ??= Enumerable.Empty<string>();
+		args ??= [];
 		var cmd2 = $"{cmd} {string.Join(' ', args.Select(AdbHelper.Escape))}";
 		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
 
-		// await SendAsync($"{R.Cmd_Shell}{cmd2}");
-		// await VerifyAsync();
-
-		// var l = await Reader.ReadLineAsync();
-		// return l;
-
-		// var output = await Reader.ReadToEndAsync();
-		// return output;
 		var t = await GetTransport();
 		await SendAsync(t, $"{R.Cmd_Shell}{cmd2}");
-		return await t.Reader.ReadToEndAsync();
+		return await t.Reader.ReadToEndAsync(ct);
 	}
 
 	public override string ToString()

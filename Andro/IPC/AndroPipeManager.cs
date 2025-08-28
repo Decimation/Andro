@@ -94,4 +94,6 @@ public static class AndroPipeManager
 
 	}
 
+	public const  string MUTEX_ID = "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}";
+
 }

@@ -42,7 +42,7 @@ public class PushAllCommand : AsyncCommand
 				var sb  = new StringBuilder();
 				var sb2 = new StringBuilder();
 
-				var dest = AdbDevice.SDCARD;
+				var dest = Device.SDCARD;
 
 				var cmd = AdbCommand.BuildPush(s, dest,
 				                               PipeTarget.ToStringBuilder(sb),

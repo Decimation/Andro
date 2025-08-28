@@ -40,7 +40,7 @@ public class PushCommandOptions : CommandSettings
 	[CommandOption("--source")]
 	public string Source { get; set; }
 
-	[DefaultValue(AdbDevice.SDCARD)]
+	[DefaultValue(Device.SDCARD)]
 	[CommandOption("--destination")]
 	public string Destination { get; set; }
 

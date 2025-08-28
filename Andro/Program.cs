@@ -10,11 +10,8 @@ using Spectre.Console.Cli.Help;
 
 
 // ReSharper disable AssignNullToNotNullAttribute
-
 // ReSharper disable SuspiciousTypeConversion.Global
-
 // ReSharper disable IdentifierTypo
-
 // ReSharper disable StringLiteralTypo
 #pragma warning disable IDE0060
 
@@ -44,7 +41,7 @@ public static class Program
 
 	private const char CTRL_Z = '\x1A';
 
-	private static readonly Mutex _mutex = new(true, "{E70EAF8B-2A56-45F1-8EF2-8F6968A4B20E}");
+	private static readonly Mutex _mutex = new(true, AndroPipeManager.MUTEX_ID);
 
 	private static readonly ILogger s_logger;
 
@@ -90,14 +87,14 @@ public static class Program
 		Console.Title = R1.Name;
 
 		var cmdApp = new CommandApp();
-		
+
 		// cmdApp.SetDefaultCommand<MutexCommand>();
 
 		cmdApp.Configure(cfg =>
 		{
 			cfg.PropagateExceptions();
 			cfg.SetHelpProvider(new CustomHelpProvider(cfg.Settings));
-			
+
 			cfg.AddCommand<IntegrationCommand>(R2.Arg_Integration);
 			cfg.AddCommand<ClipboardCommand>(R2.Arg_Clipboard);
 			cfg.AddCommand<PushCommand>(R2.Arg_Push);
@@ -113,7 +110,7 @@ public static class Program
 		if (b) {
 
 
-			try  {
+			try {
 
 				res = await cmdApp.RunAsync(args);
 
@@ -139,8 +136,7 @@ public static class Program
 	exit:
 		var p = await AnsiConsole.PromptAsync(new ConfirmationPrompt("Exit?"));
 
-		if (p) {
-		}
+		if (p) { }
 
 		return res;
 	}

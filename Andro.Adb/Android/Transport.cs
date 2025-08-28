@@ -1,9 +1,13 @@
 ﻿#nullable disable
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using Andro.Adb.Diagnostics;
+using Novus.Memory;
 
 // ReSharper disable InconsistentNaming
 
@@ -34,17 +38,17 @@ namespace Andro.Adb.Android;
 public class Transport : IDisposable
 {
 
-	#region
+#region
 
-	public const int    SZ_LEN = sizeof(uint);
+	public const int SZ_LEN = sizeof(uint);
 
 	public const string S_OKAY = "OKAY";
-	
+
 	public const string S_FAIL = "FAIL";
 
-	#endregion
+#endregion
 
-	#region
+#region
 
 	public StreamWriter Writer { get; }
 
@@ -56,9 +60,9 @@ public class Transport : IDisposable
 
 	public bool IsAlive => Tcp.Connected;
 
-	#endregion
+#endregion
 
-	public Transport(string host = AdbConnection.DEFAULT_HOST, int port = AdbConnection.DEFAULT_PORT)
+	public Transport(string host = DEFAULT_HOST, int port = DEFAULT_PORT)
 	{
 		Tcp = new TcpClient(host, port);
 
@@ -84,6 +88,8 @@ public class Transport : IDisposable
 
 	}
 
+
+
 	/*public async Task<SyncTransport> StartSyncAsync()
 	{
 		await SendAsync("sync:");
@@ -91,29 +97,55 @@ public class Transport : IDisposable
 		return new SyncTransport(Reader, Writer);
 	}*/
 
-	public async ValueTask<int> ReadIntAsync(CancellationToken t = default)
+	public async ValueTask<T> ReadAsync<T>(CancellationToken t = default) where T : struct
 	{
-		var buffers = new byte[sizeof(int)];
-		var s       = await Tcp.Client.ReceiveAsync(buffers, t);
-		var val     = BinaryPrimitives.ReverseEndianness(BitConverter.ToInt32(buffers));
+		var size    = Mem.SizeOf<T>();
+		var buffers = new byte[size];
+
+		var s = await Tcp.Client.ReceiveAsync(buffers, t);
+
+		if (s != size) {
+			throw new AdbException($"Received {s} expected {size}");
+		}
+
+		var val = MemoryMarshal.Read<T>(buffers);
+
+		/*
+		if (BinaryPrimitives.ReverseEndianness()) {
+
+		}
+		*/
+
 		return val;
+
+		// var val = BinaryPrimitives.ReverseEndianness();
+		// return val;
 	}
 
 	public async ValueTask<string> ReadStringAsync(CancellationToken ct = default)
 	{
-		var l  = await ReadStringAsync(SZ_LEN, ct);
-		var l2 = int.Parse(l, NumberStyles.HexNumber);
+		var s  = await ReadStringAsync(SZ_LEN, ct);
+		var l2 = int.Parse(s, NumberStyles.HexNumber);
 		return await ReadStringAsync(l2, ct);
 
 	}
 
-	public async ValueTask<string> ReadStringAsync(int l, CancellationToken ct = default)
+	public async ValueTask<byte[]> ReadAsync(int l, CancellationToken ct = default)
 	{
 		var buf = new byte[l];
-		// var l2  = await NetworkStream.ReadAsync(buf);
+		var l2  = await Tcp.Client.ReceiveAsync(buf, ct);
 
-		var l2 = await Tcp.Client.ReceiveAsync(buf, ct);
-		
+		if (l != l2) {
+			throw new AdbException($"Received {l2} expected {l}");
+		}
+
+		return buf;
+	}
+
+	public async ValueTask<string> ReadStringAsync(int l, CancellationToken ct = default)
+	{
+		var buf = await ReadAsync(l, ct);
+
 		var s = AdbHelper.Encoding.GetString(buf);
 
 		return s;
@@ -124,7 +156,7 @@ public class Transport : IDisposable
 	{
 		// NOTE: host:devices closes connection after
 		await SendAsync(R.Cmd_Devices, t);
-		await VerifyAsync();
+		await VerifyAsync(t: t);
 		var s = await ReadStringAsync(t);
 		return s;
 	}
@@ -132,7 +164,7 @@ public class Transport : IDisposable
 	public async ValueTask<string> TrackDevicesAsync(CancellationToken t = default)
 	{
 		await SendAsync(R.Cmd_TrackDevices, t);
-		await VerifyAsync();
+		await VerifyAsync(t: t);
 		var s = await ReadStringAsync(t);
 		return s;
 	}
@@ -155,6 +187,7 @@ public class Transport : IDisposable
 			case S_OKAY:
 				b = true;
 				break;
+
 			case S_FAIL:
 				msg = await ReadStringAsync(t);
 
@@ -176,6 +209,35 @@ public class Transport : IDisposable
 		Reader.Dispose();
 		Writer.Dispose();
 		NetworkStream.Dispose();
+	}
+
+	public const string DEFAULT_HOST = "localhost";
+
+	public const int DEFAULT_PORT = 5037;
+
+	public static Device[] ParseDevices(string body)
+	{
+		var lines   = body.Split(Environment.NewLine);
+		var devices = new Device[lines.Length];
+		int i       = 0;
+
+		foreach (string s in lines) {
+			var parts = s.Split('\t');
+
+			if (parts.Length > 1) {
+				devices[i++] = new Device(parts[0], this);
+			}
+		}
+
+		return devices;
+	}
+
+	public async Task<Device[]> GetDevicesAsync()
+	{
+		await SendAsync("host:devices");
+		await VerifyAsync();
+		var b = await ReadStringAsync();
+		return ParseDevices(b);
 	}
 
 }

@@ -86,10 +86,10 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
 
 				first = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First);
-				first?.SetValue(null, AdbDevice.SDCARD);
+				first?.SetValue(null, Device.SDCARD);
 
 				firstCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First_Cmd);
-				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" {AdbDevice.SDCARD}");
+				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" {Device.SDCARD}");
 
 				snd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Snd);
 				snd?.SetValue(null, "Clipboard");

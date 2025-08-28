@@ -24,7 +24,7 @@ public class Tests
 		Assert.That(AdbHelper.ConvertState(null!), Is.EqualTo(AdbDeviceState.Unknown));
 
 		var c = new AdbConnection();
-		var d = await c.GetDevicesAsync();
+		var d = await Transport.GetDevicesAsync(c.GetTransport());
 		Assert.True(d.Any());
 		var d1 = d.First();
 		TestContext.WriteLine($"{d1.Serial}");
@@ -36,13 +36,13 @@ public class Tests
 	public async Task Test1(string cmd, string[] args, string o2)
 	{
 		var c = new AdbConnection();
-		var d = await c.GetDevicesAsync();
+		var d = await Transport.GetDevicesAsync(c.GetTransport());
 		Assert.True(d.Any());
 		var d1 = d.First();
 		TestContext.WriteLine($"{d1.Serial}");
-		var r  = await d1.ShellAsync(cmd, args);
-		var sr = new StreamReader(r);
-		var o  = (await sr.ReadToEndAsync()).Trim().Trim('\n');
+		var o  = await d1.ShellAsync(cmd, args);
+		// var sr = new StreamReader(r);
+		// var o  = (await sr.ReadToEndAsync()).Trim().Trim('\n');
 		Assert.That(o, Is.EqualTo(o2));
 	}
 
