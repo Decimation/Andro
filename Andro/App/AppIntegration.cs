@@ -1,5 +1,6 @@
 ﻿global using R1 = Andro.Adb.Properties.Resources;
 global using R2 = Andro.Properties.Resources;
+
 using Microsoft.Extensions.Logging;
 using Novus.OS;
 

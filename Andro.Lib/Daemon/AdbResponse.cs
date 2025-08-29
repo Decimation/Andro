@@ -1,5 +1,5 @@
 ﻿#nullable disable
-namespace Andro.Adb.Android;
+namespace Andro.Lib.Daemon;
 
 public readonly record struct AdbResponse
 {
@@ -16,4 +16,5 @@ public readonly record struct AdbResponse
 	}
 
 	public AdbResponse() { }
+
 }

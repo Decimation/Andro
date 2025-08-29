@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Andro.Adb\Andro.Adb.csproj" />
+    <ProjectReference Include="..\Andro.Lib\Andro.Adb.csproj" />
   </ItemGroup>
 
   <ItemGroup>

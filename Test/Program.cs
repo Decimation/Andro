@@ -1,13 +1,20 @@
 ﻿using Andro.Kde;
+using Andro.Lib.Daemon;
 using Novus.Win32;
 
 namespace Test;
 
 public static class Program
 {
-	public static async Task Main(string[] args)
+
+	public static async Task<int> Main(string[] args)
 	{
-		// await Test2();
+		var t   = new Transport(Transport.HOST_DEFAULT, Transport.PORT_DEFAULT);
+		var dev = await t.TrackDevicesAsync();
+		Console.WriteLine(dev);
+		var x= await t.ReadStringAsync();
+
+		return 0;
 	}
 
 	/*
@@ -34,7 +41,7 @@ public static class Program
 		Console.WriteLine(k);
 		Clipboard.Open();
 
-		var f= Clipboard.GetDragQueryList();
+		var f = Clipboard.GetDragQueryList();
 
 		var strings = new List<string>
 		{
@@ -46,4 +53,5 @@ public static class Program
 			Console.WriteLine(v);
 		}
 	}
+
 }

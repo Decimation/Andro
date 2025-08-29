@@ -1,28 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Text;
-using Andro.Adb.Android;
+using Andro.Lib.Daemon;
 
 // ReSharper disable BuiltInTypeReferenceStyleForMemberAccess
 #pragma warning disable IDE0049
 
-[assembly: InternalsVisibleTo("Andro")]
-[assembly: InternalsVisibleTo("Test")]
-
-
-namespace Andro.Adb;
+namespace Andro.Lib;
 
 public static class AdbHelper
 {
-
-	public static Encoding Encoding { get; set; } = Encoding.UTF8;
-
-	public static string GetPayload(string s, out byte[] rg, out byte[] rg2)
-	{
-		rg = Encoding.GetBytes(s);
-		var cm = $"{rg.Length:x4}{s}";
-		rg2 = Encoding.GetBytes(cm);
-		return cm;
-	}
 
 	public static string Escape(string e)
 	{

@@ -120,10 +120,10 @@
   <data name="Name" xml:space="preserve">
     <value>Andro</value>
   </data>
-  <data name="NameExe" xml:space="preserve">
+  <data name="Name_Exe" xml:space="preserve">
     <value>Andro.exe</value>
   </data>
-  <data name="NameShortcut" xml:space="preserve">
+  <data name="Name_Shortcut" xml:space="preserve">
     <value>Andro.lnk</value>
   </data>
   <data name="Cmd_Devices" xml:space="preserve">
@@ -143,5 +143,14 @@
   </data>
   <data name="Cmd_TrackDevices" xml:space="preserve">
     <value>host:track-devices</value>
+  </data>
+  <data name="Cmd_Push" xml:space="preserve">
+    <value>push</value>
+  </data>
+  <data name="Cmd_HostTransportAny" xml:space="preserve">
+    <value>host:transport-any</value>
+  </data>
+  <data name="Cmd_HostGetState" xml:space="preserve">
+    <value>host:get-state</value>
   </data>
 </root>
