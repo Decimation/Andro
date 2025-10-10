@@ -7,11 +7,14 @@ public class AdbConnection
 
 	public int Port { get; }
 
-	public AdbConnection(string host, int port)
+	public AdbConnection(string host = HOST_DEFAULT, int port = PORT_DEFAULT)
 	{
 		Host = host;
 		Port = port;
 	}
 
-	public AdbConnection() : this(Transport.HOST_DEFAULT, Transport.PORT_DEFAULT) { }
+	public const string HOST_DEFAULT = "localhost";
+
+	public const int PORT_DEFAULT = 5037;
+
 }

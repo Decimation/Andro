@@ -9,7 +9,7 @@ public static class Program
 
 	public static async Task<int> Main(string[] args)
 	{
-		var t   = new Transport(Transport.HOST_DEFAULT, Transport.PORT_DEFAULT);
+		var t   = new AdbTransport();
 		var dev = await t.TrackDevicesAsync();
 		Console.WriteLine(dev);
 		var x= await t.ReadStringAsync();

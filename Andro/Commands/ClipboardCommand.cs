@@ -4,9 +4,10 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
-using Andro.Adb;
-using Andro.Adb.Android;
+using Andro.Lib;
 using Andro.App;
+using Andro.Lib.Daemon;
+using Andro.Lib.Exe;
 using CliWrap;
 using Microsoft.Extensions.Logging;
 using Novus.Win32;
@@ -34,7 +35,7 @@ public class ClipboardCommand : AsyncCommand
 			var sb  = new StringBuilder();
 			var sb2 = new StringBuilder();
 
-			var cmd = AdbCommand.BuildPush(s, Device.SDCARD,
+			var cmd = AdbCommand.Push(s, AdbTransport.DIR_SDCARD,
 			                               PipeTarget.ToStringBuilder(sb),
 			                               PipeTarget.ToStringBuilder(sb2));
 

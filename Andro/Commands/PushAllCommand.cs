@@ -2,8 +2,9 @@
 // Date: 2025/05/30 @ 02:05:00
 
 using System.Text;
-using Andro.Adb;
-using Andro.Adb.Android;
+using Andro.Lib;
+using Andro.Lib.Daemon;
+using Andro.Lib.Exe;
 using CliWrap;
 using Kantan.Text;
 using Spectre.Console;
@@ -42,9 +43,9 @@ public class PushAllCommand : AsyncCommand
 				var sb  = new StringBuilder();
 				var sb2 = new StringBuilder();
 
-				var dest = Device.SDCARD;
+				var dest = AdbTransport.DIR_SDCARD;
 
-				var cmd = AdbCommand.BuildPush(s, dest,
+				var cmd = AdbCommand.Push(s, dest,
 				                               PipeTarget.ToStringBuilder(sb),
 				                               PipeTarget.ToStringBuilder(sb2));
 

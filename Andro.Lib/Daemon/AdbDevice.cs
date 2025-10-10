@@ -4,13 +4,13 @@ using Andro.Lib.Diagnostics;
 
 namespace Andro.Lib.Daemon;
 
-public class Device
+public class AdbDevice
 {
 
 	public string? Serial { get; }
 
 
-	internal Device(string? serial)
+	internal AdbDevice(string? serial)
 	{
 		Serial = serial;
 	}

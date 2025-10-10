@@ -11,7 +11,6 @@ global using ACT = JetBrains.Annotations.AssertionConditionType;
 #endregion
 
 #nullable disable
-
 using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
 using Andro.Lib.Properties;
@@ -35,16 +34,8 @@ using JetBrains.Annotations;
 
 namespace Andro.Lib.Daemon;
 
-public class Transport : IDisposable
+public class AdbTransport : IDisposable
 {
-
-#region
-
-	public const string HOST_DEFAULT = "localhost";
-
-	public const int PORT_DEFAULT = 5037;
-
-#endregion
 
 #region
 
@@ -52,7 +43,8 @@ public class Transport : IDisposable
 
 	public const string S_OKAY = "OKAY";
 
-	public const string S_FAIL = "FAIL";
+	public const string S_FAIL     = "FAIL";
+	public const string DIR_SDCARD = "sdcard/";
 
 #endregion
 
@@ -72,9 +64,9 @@ public class Transport : IDisposable
 
 #endregion
 
-	public Transport(string host, int port)
+	public AdbTransport(AdbConnection conn)
 	{
-		Tcp = new TcpClient(host, port) { };
+		Tcp = new TcpClient(conn.Host, conn.Port) { };
 
 		NetworkStream = Tcp.GetStream();
 
@@ -87,14 +79,13 @@ public class Transport : IDisposable
 		await sock.ConnectAsync("localhost", 5037);*/
 	}
 
-	static Transport()
+	static AdbTransport()
 	{
-		_transports = new ConcurrentDictionary<string, Transport>();
+		_transports = new ConcurrentDictionary<string, AdbTransport>();
 	}
 
-	private static readonly ConcurrentDictionary<string, Transport> _transports;
+	private static readonly ConcurrentDictionary<string, AdbTransport> _transports;
 
-	
 
 	public ValueTask<int> SendAsync(string s, CancellationToken t = default)
 	{
@@ -165,11 +156,11 @@ public class Transport : IDisposable
 
 
 	/// <remarks>Connection terminates after command</remarks>
-	public async ValueTask<Device[]> GetDevicesAsync(CancellationToken t = default)
+	public async ValueTask<AdbDevice[]> GetDevicesAsync(CancellationToken t = default)
 	{
 		// NOTE: host:devices closes connection after
 		await SendAsync(R1.Cmd_Devices, t);
-		await VerifyAsync(t:t);
+		await VerifyAsync(t: t);
 		var s = await ReadStringAsync(t);
 		return ParseDevices(s);
 	}
@@ -178,7 +169,9 @@ public class Transport : IDisposable
 	{
 		await SendAsync(R1.Cmd_TrackDevices, t);
 		await VerifyAsync(t: t);
+
 		var s = await ReadStringAsync(t);
+
 		return s;
 	}
 
@@ -231,7 +224,7 @@ public class Transport : IDisposable
 
 		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
 
-		await SendAsync($"{R1.Cmd_Shell}{cmd2}");
+		await SendAsync($"{R1.Cmd_Shell}{cmd2}", ct);
 		return await Reader.ReadToEndAsync(ct);
 	}
 
@@ -242,17 +235,17 @@ public class Transport : IDisposable
 		return AdbHelper.ConvertState(s);
 	}
 
-	public static Device[] ParseDevices(string body)
+	public static AdbDevice[] ParseDevices(string body)
 	{
 		var lines   = body.Split(Environment.NewLine);
-		var devices = new Device[lines.Length];
+		var devices = new AdbDevice[lines.Length];
 		int i       = 0;
 
 		foreach (string s in lines) {
 			var parts = s.Split('\t', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
 			if (parts.Length > 1) {
-				devices[i++] = new Device(parts[0]);
+				devices[i++] = new AdbDevice(parts[0]);
 			}
 		}
 
@@ -274,7 +267,5 @@ public class Transport : IDisposable
 		Writer.Dispose();
 		NetworkStream.Dispose();
 	}
-
-	public const string DIR_SDCARD = "sdcard/";
 
 }

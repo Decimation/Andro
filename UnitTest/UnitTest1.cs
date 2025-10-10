@@ -1,7 +1,7 @@
 global using Assert = NUnit.Framework.Legacy.ClassicAssert;
 using System.Diagnostics;
-using Andro.Adb;
-using Andro.Adb.Android;
+using Andro.Lib;
+using Andro.Lib.Daemon;
 using NUnit.Framework;
 
 // ReSharper disable AccessToStaticMemberViaDerivedType
@@ -24,7 +24,7 @@ public class Tests
 		Assert.That(AdbHelper.ConvertState(null!), Is.EqualTo(AdbDeviceState.Unknown));
 
 		var c = new AdbConnection();
-		var d = await Transport.GetDevicesAsync(c.GetTransport());
+		var d = await new AdbDevice();
 		Assert.True(d.Any());
 		var d1 = d.First();
 		TestContext.WriteLine($"{d1.Serial}");
@@ -36,7 +36,7 @@ public class Tests
 	public async Task Test1(string cmd, string[] args, string o2)
 	{
 		var c = new AdbConnection();
-		var d = await Transport.GetDevicesAsync(c.GetTransport());
+		var d = await AdbTransport.GetDevicesAsync(c.GetTransport());
 		Assert.True(d.Any());
 		var d1 = d.First();
 		TestContext.WriteLine($"{d1.Serial}");

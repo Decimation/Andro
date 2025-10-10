@@ -1,4 +1,4 @@
-﻿global using R1 = Andro.Adb.Properties.Resources;
+﻿global using R1 = Andro.Lib.Properties.Resources;
 global using R2 = Andro.Properties.Resources;
 
 using Microsoft.Extensions.Logging;
@@ -14,7 +14,7 @@ public static class AppIntegration
 
 	static AppIntegration()
 	{
-		ExeLocation = FileSystem.FindLocation(R1.NameExe);
+		ExeLocation = FileSystem.FindLocation(R1.Name_Exe);
 
 		LoggerFactoryInt = LoggerFactory.Create(builder =>
 		{

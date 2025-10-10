@@ -3,8 +3,9 @@
 
 using System.ComponentModel;
 using System.Text;
-using Andro.Adb;
-using Andro.Adb.Android;
+using Andro.Lib;
+using Andro.Lib.Daemon;
+using Andro.Lib.Exe;
 using CliWrap;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -19,7 +20,7 @@ public class PushCommand : AsyncCommand<PushCommandOptions>
 		var sb  = new StringBuilder();
 		var sb2 = new StringBuilder();
 
-		var cmd = AdbCommand.BuildPush(settings.Source, settings.Destination,
+		var cmd = AdbCommand.Push(settings.Source, settings.Destination,
 		                            PipeTarget.ToStringBuilder(sb),
 		                            PipeTarget.ToStringBuilder(sb2));
 
@@ -40,9 +41,8 @@ public class PushCommandOptions : CommandSettings
 	[CommandOption("--source")]
 	public string Source { get; set; }
 
-	[DefaultValue(Device.SDCARD)]
 	[CommandOption("--destination")]
-	public string Destination { get; set; }
+	public string Destination { get; set; } = AdbTransport.DIR_SDCARD;
 
 	public override ValidationResult Validate()
 	{

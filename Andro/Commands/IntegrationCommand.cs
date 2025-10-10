@@ -5,9 +5,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
-using Andro.Adb.Android;
 using Andro.App;
 using Andro.IPC;
+using Andro.Lib.Daemon;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Novus.Win32.Structures.User32;
@@ -86,10 +86,10 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 				mainCmd?.SetValue(null, $"\"{fullPath}\" \"%1\"");
 
 				first = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First);
-				first?.SetValue(null, Device.SDCARD);
+				first?.SetValue(null, AdbTransport.DIR_SDCARD);
 
 				firstCmd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_First_Cmd);
-				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" {Device.SDCARD}");
+				firstCmd?.SetValue(null, $"\"{fullPath}\" {R2.Arg_Push} \"%1\" {AdbTransport.DIR_SDCARD}");
 
 				snd = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Snd);
 				snd?.SetValue(null, "Clipboard");
@@ -133,7 +133,7 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 		                          @"AppData\Roaming\Microsoft\Windows\SendTo");
 
 		s_logger.LogDebug("{ExeLoc}", AppIntegration.ExeLocation);
-		var sendToFile = Path.Combine(sendTo, R1.NameShortcut);
+		var sendToFile = Path.Combine(sendTo, R1.Name_Shortcut);
 
 		// b ??= !File.Exists(sendToFile);
 

@@ -106,6 +106,15 @@ namespace Andro.Lib.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to pull.
+        /// </summary>
+        internal static string Cmd_Pull {
+            get {
+                return ResourceManager.GetString("Cmd_Pull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to push.
         /// </summary>
         internal static string Cmd_Push {
