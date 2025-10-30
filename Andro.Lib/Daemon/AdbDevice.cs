@@ -3,20 +3,18 @@
 public class AdbDevice
 {
 
-	public string? Serial { get; }
+	public string Serial { get; }
 
 
-	public AdbDevice(string? serial = null)
+	public AdbDevice(string serial)
 	{
-		Serial    = serial;
+		Serial = serial;
 	}
 
-	public bool IsDefault => String.IsNullOrWhiteSpace(Serial);
 
+	// public static implicit operator string(AdbDevice device) => device.Serial;
 
-	public static implicit operator string?(AdbDevice device) => device.Serial;
-
-	// public static implicit operator string?(AdbDevice device) => device.Serial;
+	// public static implicit operator AdbDevice(string s) => new(s);
 
 
 	/*public async Task<Transport> SyncPrep(string p, string c)

@@ -9,16 +9,20 @@ public static class Program
 
 	public static async Task<int> Main(string[] args)
 	{
-		using var adbTransport = new AdbTransport();
-		var       devices      = await adbTransport.GetDevicesAsync();
+		var adbTransport = new AdbConnection();
+		Console.WriteLine(await adbTransport.GetVersionAsync());
+		var devices = new AdbDevice[] { new AdbDevice("192.168.1.235:5555") };
+
+		// var       devices      = await adbTransport.GetDevicesAsync();
 
 		foreach (AdbDevice adbDevice in devices) {
 			Console.WriteLine(adbDevice);
 		}
 
-		var device = devices.First();
-		Console.WriteLine(await adbTransport.GetVersionAsync());
 
+		var device = devices.First();
+		var state=await adbTransport.GetHostStateAsync(device);
+		Console.WriteLine(state);
 		return 0;
 	}
 

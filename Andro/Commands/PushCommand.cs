@@ -40,7 +40,7 @@ public class PushCommandOptions : CommandSettings
 	public string Source { get; set; }
 
 	[CommandOption("--destination")]
-	public string Destination { get; set; } = AdbTransport.DIR_SDCARD;
+	public string Destination { get; set; } = AdbConnection.DIR_SDCARD;
 
 	public override ValidationResult Validate()
 	{

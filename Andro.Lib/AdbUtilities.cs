@@ -37,20 +37,6 @@ public static class AdbUtilities
 		}
 
 		return Enum.Parse<AdbDeviceState>(type, true);
-
-		/*return type switch
-		{
-			"device"       => State.Device,
-			"offline"      => State.Offline,
-			"bootloader"   => State.BootLoader,
-			"recovery"     => State.Recovery,
-			"unauthorized" => State.Unauthorized,
-			"authorizing"  => State.Authorizing,
-			"connecting"   => State.Connecting,
-			"sideload"     => State.Sideload,
-			"rescue"       => State.Rescue,
-			_              => State.Unknown
-		};*/
 	}
 
 	public static byte[] GetPayload(string s)

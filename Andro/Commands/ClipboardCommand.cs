@@ -33,7 +33,7 @@ public class ClipboardCommand : AsyncCommand
 			var sb  = new StringBuilder();
 			var sb2 = new StringBuilder();
 
-			var cmd = AdbCommand.Push(s, AdbTransport.DIR_SDCARD,
+			var cmd = AdbCommand.Push(s, AdbConnection.DIR_SDCARD,
 			                          PipeTarget.ToStringBuilder(sb),
 			                          PipeTarget.ToStringBuilder(sb2));
 
