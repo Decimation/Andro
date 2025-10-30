@@ -21,14 +21,14 @@ public class Tests
 	[Test]
 	public async Task Test2()
 	{
-		Assert.That(AdbHelper.ParseState(null!), Is.EqualTo(AdbDeviceState.Unknown));
+		Assert.That(AdbUtilities.ParseState(null!), Is.EqualTo(AdbDeviceState.Unknown));
 
 		var c = new AdbTransport();
 		var d = (await c.GetDevicesAsync());
 		Assert.True(d.Any());
 		var d1 = d.First();
 		TestContext.WriteLine($"{d1}");
-		Assert.That(await d1.GetStateAsync(), Is.EqualTo(AdbDeviceState.Device));
+		Assert.That(await d1.Transport.GetStateAsync(d1), Is.EqualTo(AdbDeviceState.Device));
 	}
 
 	[Test]
@@ -38,7 +38,7 @@ public class Tests
 		var d  = new AdbTransport();
 		var d1 = (await d.GetDevicesAsync()).First();
 		TestContext.WriteLine($"{d1.Serial}");
-		var o = await d1.Transport.ShellAsync(cmd, args);
+		var o = await d.ShellAsync(cmd, args);
 
 		// var sr = new StreamReader(r);
 		// var o  = (await sr.ReadToEndAsync()).Trim().Trim('\n');

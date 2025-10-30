@@ -9,8 +9,8 @@ public static class Program
 
 	public static async Task<int> Main(string[] args)
 	{
-		var adbTransport = new AdbTransport();
-		var devices      = await adbTransport.GetDevicesAsync();
+		using var adbTransport = new AdbTransport();
+		var       devices      = await adbTransport.GetDevicesAsync();
 
 		foreach (AdbDevice adbDevice in devices) {
 			Console.WriteLine(adbDevice);
@@ -18,6 +18,7 @@ public static class Program
 
 		var device = devices.First();
 		Console.WriteLine(await adbTransport.GetVersionAsync());
+
 		return 0;
 	}
 

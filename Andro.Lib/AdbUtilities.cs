@@ -8,12 +8,12 @@ using System.Text;
 
 namespace Andro.Lib;
 
-public static class AdbHelper
+public static class AdbUtilities
 {
 
 	internal static readonly ILoggerFactory LoggerFactoryInt;
 
-	static AdbHelper()
+	static AdbUtilities()
 	{
 		LoggerFactoryInt = LoggerFactory.Create(builder =>
 		{
@@ -61,23 +61,6 @@ public static class AdbHelper
 	}
 
 	public static Encoding Encoding { get; } = Encoding.UTF8;
-
-	public static string[] ParseDevices(string body)
-	{
-		var lines   = body.Split(Environment.NewLine);
-		var devices = new string[lines.Length];
-		int i       = 0;
-
-		foreach (string s in lines) {
-			var parts = s.Split('\t', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-			if (parts.Length > 1) {
-				devices[i++] = parts[0];
-			}
-		}
-
-		return devices;
-	}
 
 }
 

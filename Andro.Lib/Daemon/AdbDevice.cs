@@ -1,23 +1,20 @@
 ﻿namespace Andro.Lib.Daemon;
 
-public class AdbDevice : IDisposable
+public class AdbDevice
 {
 
 	public string? Serial { get; }
 
-	public AdbTransport Transport { get; }
 
-	public AdbDevice(AdbTransport transport, string? serial = null)
+	public AdbDevice(string? serial = null)
 	{
 		Serial    = serial;
-		Transport = transport;
 	}
 
 	public bool IsDefault => String.IsNullOrWhiteSpace(Serial);
 
-	static AdbDevice() { }
 
-	// public static implicit operator string?(AdbDevice device) => device.Serial;
+	public static implicit operator string?(AdbDevice device) => device.Serial;
 
 	// public static implicit operator string?(AdbDevice device) => device.Serial;
 
@@ -26,13 +23,13 @@ public class AdbDevice : IDisposable
 	{
 		var t = await GetTransport();
 		await SendAsync(t, "sync:");
-		var rg = AdbHelper.GetPayload(c, out var rg1, out var rg2);
+		var rg = AdbUtilities.GetPayload(c, out var rg1, out var rg2);
 
 		// await t.Writer.WriteAsync(($"{c}{BinaryPrimitives.ReverseEndianness(p.Length):x4}{p}"));
 
 		// await t.SendAsync($"{rg}{p}");
-		await t.NetworkStream.WriteAsync(AdbHelper.Encoding.GetBytes(c));
-		var buffer = AdbHelper.Encoding.GetBytes(p);
+		await t.NetworkStream.WriteAsync(AdbUtilities.Encoding.GetBytes(c));
+		var buffer = AdbUtilities.Encoding.GetBytes(p);
 		var bl     = buffer.Length;
 		await t.NetworkStream.WriteAsync(BitConverter.GetBytes(bl));
 		await t.NetworkStream.WriteAsync(buffer);
@@ -40,17 +37,26 @@ public class AdbDevice : IDisposable
 		return t;
 	}*/
 
-	public ValueTask<AdbDeviceState> GetStateAsync() => Transport.GetStateAsync(Serial);
-
 	public override string ToString()
 	{
-		return $"{Serial} : {Transport}";
+		return $"{Serial}";
 	}
 
-	/// <inheritdoc />
-	public void Dispose()
+	public static string[] ParseDevices(string body)
 	{
-		Transport.Dispose();
+		var lines   = body.Split(Environment.NewLine);
+		var devices = new string[lines.Length];
+		int i       = 0;
+
+		foreach (string s in lines) {
+			var parts = s.Split('\t', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+			if (parts.Length > 1) {
+				devices[i++] = parts[0];
+			}
+		}
+
+		return devices;
 	}
 
 }
