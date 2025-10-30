@@ -2,7 +2,6 @@
 // Date: 2025/05/30 @ 02:05:00
 
 using System.Text;
-using Andro.Lib;
 using Andro.Lib.Daemon;
 using Andro.Lib.Exe;
 using CliWrap;
@@ -15,7 +14,7 @@ namespace Andro.Commands;
 public class PushAllCommand : AsyncCommand
 {
 
-	public override async Task<int> ExecuteAsync(CommandContext context)
+	public override async Task<int> ExecuteAsync(CommandContext context,CancellationToken ct)
 	{
 		var files = context.Arguments;
 

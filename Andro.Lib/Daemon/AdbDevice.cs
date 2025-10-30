@@ -1,19 +1,26 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using Andro.Lib.Diagnostics;
+﻿namespace Andro.Lib.Daemon;
 
-namespace Andro.Lib.Daemon;
-
-public class AdbDevice
+public class AdbDevice : IDisposable
 {
 
 	public string? Serial { get; }
 
+	public AdbTransport Transport { get; }
 
-	internal AdbDevice(string? serial)
+	public AdbDevice(AdbTransport transport, string? serial = null)
 	{
-		Serial = serial;
+		Serial    = serial;
+		Transport = transport;
 	}
+
+	public bool IsDefault => String.IsNullOrWhiteSpace(Serial);
+
+	static AdbDevice() { }
+
+	// public static implicit operator string?(AdbDevice device) => device.Serial;
+
+	// public static implicit operator string?(AdbDevice device) => device.Serial;
+
 
 	/*public async Task<Transport> SyncPrep(string p, string c)
 	{
@@ -33,25 +40,17 @@ public class AdbDevice
 		return t;
 	}*/
 
+	public ValueTask<AdbDeviceState> GetStateAsync() => Transport.GetStateAsync(Serial);
+
 	public override string ToString()
 	{
-		return $"{Serial}";
+		return $"{Serial} : {Transport}";
 	}
 
-}
-
-public enum AdbDeviceState
-{
-
-	Unknown,
-	Offline,
-	Device,
-	Recovery,
-	BootLoader,
-	Unauthorized,
-	Authorizing,
-	Sideload,
-	Connecting,
-	Rescue
+	/// <inheritdoc />
+	public void Dispose()
+	{
+		Transport.Dispose();
+	}
 
 }

@@ -1,9 +1,7 @@
 ﻿// Author: Deci | Project: Andro | Name: PushCommand.cs
 // Date: 2025/05/30 @ 02:05:15
 
-using System.ComponentModel;
 using System.Text;
-using Andro.Lib;
 using Andro.Lib.Daemon;
 using Andro.Lib.Exe;
 using CliWrap;
@@ -15,7 +13,7 @@ namespace Andro.Commands;
 public class PushCommand : AsyncCommand<PushCommandOptions>
 {
 
-	public override async Task<int> ExecuteAsync(CommandContext context, PushCommandOptions settings)
+	public override async Task<int> ExecuteAsync(CommandContext context, PushCommandOptions settings, CancellationToken ct)
 	{
 		var sb  = new StringBuilder();
 		var sb2 = new StringBuilder();

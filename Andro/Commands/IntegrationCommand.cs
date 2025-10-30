@@ -6,7 +6,6 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using Andro.App;
-using Andro.IPC;
 using Andro.Lib.Daemon;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -22,7 +21,7 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 	private static readonly ILogger s_logger = AppIntegration.LoggerFactoryInt.CreateLogger(nameof(IntegrationCommand));
 
 	[SupportedOSPlatform(AppIntegration.OS_WIN)]
-	public override async Task<int> ExecuteAsync(CommandContext context, IntegrationCommandSettings settings)
+	public override async Task<int> ExecuteAsync(CommandContext context, IntegrationCommandSettings settings,CancellationToken ct)
 	{
 		bool? ok = null;
 
@@ -72,7 +71,7 @@ public class IntegrationCommand : AsyncCommand<IntegrationCommandSettings>
 				if (shell != null) {
 					shell.SetValue("MUIVerb", R1.Name);
 					shell.SetValue("Icon", $"\"{fullPath}\"");
-					shell.SetValue("subcommands", string.Empty);
+					shell.SetValue("subcommands", String.Empty);
 				}
 
 				main = Registry.CurrentUser.CreateSubKey(R2.Reg_Shell_Main);

@@ -1,10 +1,8 @@
 ﻿// Author: Deci | Project: Andro | Name: ClipboardCommand.cs
 // Date: 2025/05/30 @ 02:05:37
 
-using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
-using Andro.Lib;
 using Andro.App;
 using Andro.Lib.Daemon;
 using Andro.Lib.Exe;
@@ -21,7 +19,7 @@ public class ClipboardCommand : AsyncCommand
 	private static readonly ILogger s_logger = AppIntegration.LoggerFactoryInt.CreateLogger(nameof(ClipboardCommand));
 
 	[SupportedOSPlatform(AppIntegration.OS_WIN)]
-	public override async Task<int> ExecuteAsync(CommandContext context)
+	public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken ct)
 	{
 		var d = context.Arguments;
 
@@ -36,8 +34,8 @@ public class ClipboardCommand : AsyncCommand
 			var sb2 = new StringBuilder();
 
 			var cmd = AdbCommand.Push(s, AdbTransport.DIR_SDCARD,
-			                               PipeTarget.ToStringBuilder(sb),
-			                               PipeTarget.ToStringBuilder(sb2));
+			                          PipeTarget.ToStringBuilder(sb),
+			                          PipeTarget.ToStringBuilder(sb2));
 
 			var x = await cmd.ExecuteAsync(token);
 

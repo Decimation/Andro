@@ -10,11 +10,11 @@ namespace Andro.App;
 [Guid("000214F9-0000-0000-C000-000000000046")]
 internal interface IShellLink
 {
-	void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszFile, int cchMaxPath, out IntPtr pfd,
+	void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszFile, int cchMaxPath, out nint pfd,
 	             int fFlags);
 
-	void GetIDList(out IntPtr ppidl);
-	void SetIDList(IntPtr pidl);
+	void GetIDList(out nint ppidl);
+	void SetIDList(nint pidl);
 	void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, int cchMaxName);
 	void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
 	void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszDir, int cchMaxPath);
@@ -31,7 +31,7 @@ internal interface IShellLink
 
 	void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
 	void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, int dwReserved);
-	void Resolve(IntPtr hwnd, int fFlags);
+	void Resolve(nint hwnd, int fFlags);
 	void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
 }
 

@@ -12,16 +12,16 @@ global using ACT = JetBrains.Annotations.AssertionConditionType;
 
 #nullable disable
 using System.Runtime.CompilerServices;
-using System.Collections.Concurrent;
-using Andro.Lib.Properties;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Text;
 using Andro.Lib.Diagnostics;
 using Novus.Memory;
 using JetBrains.Annotations;
+
+// ReSharper disable AsyncApostle.ConfigureAwaitHighlighting
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable UnusedMember.Global
@@ -37,14 +37,22 @@ namespace Andro.Lib.Daemon;
 public class AdbTransport : IDisposable
 {
 
+	private static readonly ILogger _logger = AdbHelper.LoggerFactoryInt.CreateLogger("Andro.Lib");
+
+#region Response Codes
+
+	public const string S_OKAY = "OKAY";
+	public const string S_FAIL = "FAIL";
+
+#endregion
+
 #region
 
 	public const int SZ_LEN = sizeof(uint);
 
-	public const string S_OKAY = "OKAY";
-
-	public const string S_FAIL     = "FAIL";
-	public const string DIR_SDCARD = "sdcard/";
+	public const string DIR_SDCARD   = "sdcard/";
+	public const string HOST_DEFAULT = "localhost";
+	public const int    PORT_DEFAULT = 5037;
 
 #endregion
 
@@ -58,20 +66,16 @@ public class AdbTransport : IDisposable
 
 	public TcpClient Tcp { get; }
 
-	public static Encoding Encoding { get; } = Encoding.UTF8;
-
-	public bool IsAlive => Tcp.Connected;
-
 #endregion
 
-	public AdbTransport(AdbConnection conn)
+	public AdbTransport(string host = HOST_DEFAULT, int port = PORT_DEFAULT)
 	{
-		Tcp = new TcpClient(conn.Host, conn.Port) { };
+		Tcp = new TcpClient(host, port);
 
 		NetworkStream = Tcp.GetStream();
 
-		Writer = new StreamWriter(NetworkStream, Encoding);
-		Reader = new StreamReader(NetworkStream, Encoding, false);
+		Writer = new StreamWriter(NetworkStream, AdbHelper.Encoding);
+		Reader = new StreamReader(NetworkStream, AdbHelper.Encoding, false);
 
 		// Writer.AutoFlush = true;
 
@@ -79,18 +83,10 @@ public class AdbTransport : IDisposable
 		await sock.ConnectAsync("localhost", 5037);*/
 	}
 
-	static AdbTransport()
-	{
-		_transports = new ConcurrentDictionary<string, AdbTransport>();
-	}
-
-	private static readonly ConcurrentDictionary<string, AdbTransport> _transports;
-
 
 	public ValueTask<int> SendAsync(string s, CancellationToken t = default)
 	{
-		var rg2 = GetPayload(s);
-
+		var rg2 = AdbHelper.GetPayload(s);
 		return Tcp.Client.SendAsync(rg2, t);
 	}
 
@@ -106,10 +102,12 @@ public class AdbTransport : IDisposable
 		var size    = Mem.SizeOf<T>();
 		var buffers = new byte[size];
 
-		var s = await Tcp.Client.ReceiveAsync(buffers, t);
+		var len = await Tcp.Client.ReceiveAsync(buffers, t);
 
-		if (s != size) {
-			throw new AdbException($"Received {s} expected {size}");
+		_logger.LogDebug("Reading type {Type} ({Size}) received {Len}", typeof(T).Name, size, len);
+
+		if (len != size) {
+			throw new AdbException($"Received {len} expected {size}");
 		}
 
 		var val = MemoryMarshal.Read<T>(buffers);
@@ -126,13 +124,6 @@ public class AdbTransport : IDisposable
 		// return val;
 	}
 
-	public async ValueTask<string> ReadStringAsync(CancellationToken ct = default)
-	{
-		var s  = await ReadStringAsync(SZ_LEN, ct);
-		var l2 = int.Parse(s, NumberStyles.HexNumber);
-		return await ReadStringAsync(l2, ct);
-	}
-
 	public async ValueTask<byte[]> ReadAsync(int l, CancellationToken ct = default)
 	{
 		var buf = new byte[l];
@@ -142,14 +133,21 @@ public class AdbTransport : IDisposable
 			throw new AdbException($"Received {l2} expected {l}");
 		}
 
+		_logger.LogDebug("Read {Len} received {Len2}", l, l2);
 		return buf;
 	}
 
-	public async ValueTask<string> ReadStringAsync(int l, CancellationToken ct = default)
+	public async Task<string> ReadEncodedStringAsync(int len = SZ_LEN, CancellationToken ct = default)
+	{
+		var s  = await ReadStringAsync(len, ct);
+		var l2 = int.Parse(s, NumberStyles.HexNumber);
+		return await ReadStringAsync(l2, ct);
+	}
+
+	public async Task<string> ReadStringAsync(int l, CancellationToken ct = default)
 	{
 		var buf = await ReadAsync(l, ct);
-
-		var s = Encoding.GetString(buf);
+		var s   = AdbHelper.Encoding.GetString(buf);
 
 		return s;
 	}
@@ -161,30 +159,51 @@ public class AdbTransport : IDisposable
 		// NOTE: host:devices closes connection after
 		await SendAsync(R1.Cmd_Devices, t);
 		await VerifyAsync(t: t);
-		var s = await ReadStringAsync(t);
-		return ParseDevices(s);
+
+		var s = await ReadEncodedStringAsync(ct: t);
+
+		var devices = AdbHelper.ParseDevices(s);
+		var rg      = new AdbDevice[devices.Length];
+
+		for (int i = 0; i < devices.Length; i++) {
+			rg[i] = new AdbDevice(this, devices[i]);
+		}
+
+		return rg;
 	}
 
-	public async ValueTask<string> TrackDevicesAsync(CancellationToken t = default)
+
+	/*
+	public async Task<T> SendCommandAsync<T>(string cmd, Func<int, CancellationToken, Task<T>> getVal, CancellationToken state,
+	                                         bool verify = true)
+	{
+		var len = await SendAsync(cmd, state);
+
+		if (verify) {
+			await VerifyAsync(t: state);
+		}
+
+		return await getVal(len, state);
+	}
+	*/
+
+
+	public async Task<string> TrackDevicesAsync(CancellationToken t = default)
 	{
 		await SendAsync(R1.Cmd_TrackDevices, t);
 		await VerifyAsync(t: t);
-
-		var s = await ReadStringAsync(t);
-
-		return s;
+		return await ReadEncodedStringAsync(ct: t);
 	}
 
-	public async ValueTask<string> GetVersionAsync()
+	public async Task<string> GetVersionAsync(CancellationToken t = default)
 	{
 		// NOTE: no verification
-		await SendAsync(R1.Cmd_Version);
-		return await ReadStringAsync(SZ_LEN);
+		await SendAsync(R1.Cmd_Version, t);
+		return await ReadEncodedStringAsync(ct: t);
 	}
 
 	[CA($"{nameof(throws)}: false => halt")]
-	public async ValueTask<AdbResponse> VerifyAsync([AC(ACT.IS_FALSE)] bool throws = true,
-	                                                CancellationToken t = default)
+	public async Task<AdbResponse> VerifyAsync([AC(ACT.IS_FALSE)] bool throws = true, CancellationToken t = default)
 	{
 		var res = await ReadStringAsync(SZ_LEN, t);
 
@@ -197,7 +216,7 @@ public class AdbTransport : IDisposable
 				break;
 
 			case S_FAIL:
-				msg = await ReadStringAsync(t);
+				msg = await ReadEncodedStringAsync(ct: t);
 
 				if (throws) {
 					throw new AdbException(msg);
@@ -210,58 +229,36 @@ public class AdbTransport : IDisposable
 		return new AdbResponse(b, msg);
 	}
 
-	public async ValueTask SetTransport([CBN] string serial = null)
-	{
-		await SendAsync(serial == null ? R1.Cmd_HostTransportAny : $"host:transport:{serial}");
-		await VerifyAsync();
-	}
-
 	public async ValueTask<string> ShellAsync(string cmd, IEnumerable<string> args = null, CancellationToken ct = default)
 	{
 		// TODO
 		args ??= [];
-		var cmd2 = $"{cmd} {string.Join(' ', args.Select(AdbHelper.Escape))}";
 
-		Trace.WriteLine($">> {cmd2}", nameof(ShellAsync));
+		var subSet = String.Join(' ', args.Select(AdbHelper.Escape));
+		var cmd2   = String.Join(' ', cmd, subSet);
+
+		_logger.LogTrace("Sending shell command {Cmd}", cmd2);
 
 		await SendAsync($"{R1.Cmd_Shell}{cmd2}", ct);
 		return await Reader.ReadToEndAsync(ct);
 	}
 
-	public async ValueTask<AdbDeviceState> GetStateAsync([CBN] string serial = null)
+	public async ValueTask SetTransport([CBN] string serial)
 	{
-		await SendAsync(serial == null ? R1.Cmd_HostGetState : $"host-serial:{serial}:get-state");
-		var s = await ReadStringAsync();
-		return AdbHelper.ConvertState(s);
+		await SendAsync(String.IsNullOrWhiteSpace(serial) ? R1.Cmd_HostTransportAny : $"host:transport:{serial}");
+		await VerifyAsync();
 	}
 
-	public static AdbDevice[] ParseDevices(string body)
+	public async ValueTask<AdbDeviceState> GetStateAsync([CBN] string serial)
 	{
-		var lines   = body.Split(Environment.NewLine);
-		var devices = new AdbDevice[lines.Length];
-		int i       = 0;
-
-		foreach (string s in lines) {
-			var parts = s.Split('\t', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-			if (parts.Length > 1) {
-				devices[i++] = new AdbDevice(parts[0]);
-			}
-		}
-
-		return devices;
-	}
-
-	public static byte[] GetPayload(string s)
-	{
-		var bc  = Encoding.GetByteCount(s);
-		var str = $"{bc:x4}{s}";
-		return Encoding.GetBytes(str);
+		await SendAsync(String.IsNullOrWhiteSpace(serial) ? R1.Cmd_HostGetState : $"host-serial:{serial}:get-state");
+		var s = await ReadEncodedStringAsync();
+		return AdbHelper.ParseState(s);
 	}
 
 	public void Dispose()
 	{
-		Trace.WriteLine("Disposing");
+		_logger.LogDebug("Disposing {Host}", Tcp);
 		Tcp.Dispose();
 		Reader.Dispose();
 		Writer.Dispose();

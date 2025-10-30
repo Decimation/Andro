@@ -9,11 +9,15 @@ public static class Program
 
 	public static async Task<int> Main(string[] args)
 	{
-		var t   = new AdbTransport();
-		var dev = await t.TrackDevicesAsync();
-		Console.WriteLine(dev);
-		var x= await t.ReadStringAsync();
+		var adbTransport = new AdbTransport();
+		var devices      = await adbTransport.GetDevicesAsync();
 
+		foreach (AdbDevice adbDevice in devices) {
+			Console.WriteLine(adbDevice);
+		}
+
+		var device = devices.First();
+		Console.WriteLine(await adbTransport.GetVersionAsync());
 		return 0;
 	}
 

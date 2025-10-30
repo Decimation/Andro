@@ -4,7 +4,6 @@ using Andro.IPC;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Cli;
-using Spectre.Console.Cli.Help;
 
 // using Andro.Kde;
 
@@ -133,7 +132,6 @@ public static class Program
 			AndroPipeManager.SendMessage(data);
 		}
 
-	exit:
 		var p = await AnsiConsole.PromptAsync(new ConfirmationPrompt("Exit?"));
 
 		if (p) { }

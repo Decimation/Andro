@@ -4,7 +4,6 @@
 // global using R1 = Andro.Lib.Properties.Resources;
 
 
-using System.IO.Pipelines;
 using CliWrap;
 
 // ReSharper disable InconsistentNaming

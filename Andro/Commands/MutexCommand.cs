@@ -11,7 +11,7 @@ public class MutexCommand : AsyncCommand
 
 #region Overrides of AsyncCommand
 
-	public override async Task<int> ExecuteAsync(CommandContext context)
+	public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken ct)
 	{
 		AndroPipeManager.StartServer();
 
